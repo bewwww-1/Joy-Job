@@ -344,6 +344,36 @@
         </div>
 
         <div class="content">
+            <!-- เมนูเครื่องมือ -->
+            <div class="section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                <h2 style="color: white; margin-bottom: 20px;">🛠️ เครื่องมือ</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                    <button class="btn btn-success" onclick="exportToExcel()">📊 ส่งออก Excel</button>
+                    <button class="btn btn-success" onclick="exportToCSV()">📄 ส่งออก CSV</button>
+                    <button class="btn btn-primary" onclick="printSummary()">🖨️ พิมพ์สรุปผล</button>
+                    <button class="btn btn-primary" onclick="backupData()">💾 สำรองข้อมูล</button>
+                    <button class="btn btn-primary" onclick="restoreData()">📥 กู้คืนข้อมูล</button>
+                    <button class="btn btn-primary" onclick="showStatistics()">📈 สถิติและรายงาน</button>
+                    <button class="btn btn-primary" onclick="showSettings()">⚙️ ตั้งค่า</button>
+                    <button class="btn btn-danger" onclick="clearAllData()">🗑️ ลบข้อมูลทั้งหมด</button>
+                </div>
+            </div>
+
+            <!-- ค้นหาและกรอง -->
+            <div class="section" id="searchSection">
+                <h2>🔍 ค้นหาและกรอง</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ค้นหาลูกน้อง</label>
+                        <input type="text" id="searchEmployee" placeholder="กรอกชื่อลูกน้อง..." onkeyup="filterEmployees()">
+                    </div>
+                    <div class="form-group">
+                        <label>กรองประวัติตามเดือน</label>
+                        <input type="month" id="filterMonth" onchange="filterHistory()">
+                    </div>
+                </div>
+            </div>
+
             <!-- จัดการรายชื่อลูกน้อง -->
             <div class="section">
                 <h2>👥 จัดการรายชื่อลูกน้อง</h2>
@@ -383,6 +413,11 @@
                         <div class="form-group">
                             <label>จำนวนวันทำงานในเดือน</label>
                             <input type="number" id="workingDays" value="30" min="0" step="0.01" onchange="updateEmployeeSettings()">
+                        </div>
+                        <div class="form-group">
+                            <label>ยอดติดลบจากเดือนก่อน (บาท)</label>
+                            <input type="number" id="previousNegativeBalance" value="0" min="0" step="0.01" onchange="updateEmployeeSettings()" placeholder="0.00">
+                            <small style="color: #666; font-size: 0.85em;">กรอกยอดติดลบที่ลูกน้องติดลบจากเดือนก่อน</small>
                         </div>
                     </div>
                 </div>
@@ -504,10 +539,54 @@
                         <span>รวมเบิกเงิน:</span>
                         <span id="summaryTotalAdvance">0.00 บาท</span>
                     </div>
+                    <div class="summary-row" id="amountBeforeNegativeRow" style="display: none;">
+                        <span>💰 เงินเดือนเดือนนี้ (หลังหักลาและเบิก):</span>
+                        <span id="summaryAmountBeforeNegative">0.00 บาท</span>
+                    </div>
+                    <div class="summary-row" id="previousNegativeRow" style="display: none;">
+                        <span>➖ หักยอดติดลบจากเดือนก่อน:</span>
+                        <span id="summaryPreviousNegative" class="negative-amount">0.00 บาท</span>
+                    </div>
+                    <div class="summary-row" id="calculationRow" style="display: none; font-style: italic; color: #666;">
+                        <span>📐 การคำนวณ:</span>
+                        <span id="calculationText"></span>
+                    </div>
                     <div class="summary-row">
                         <span>💰 เงินที่ต้องจ่าย:</span>
                         <span id="summaryFinalAmount">0.00 บาท</span>
                     </div>
+                    <div style="margin-top: 15px; text-align: center;">
+                        <button class="btn btn-success" onclick="saveHistory()">💾 บันทึกประวัติเดือนนี้</button>
+                        <button class="btn btn-success" onclick="resetNegativeBalance()" id="resetNegativeBtn" style="display: none;">✅ รีเซ็ตยอดติดลบ (เมื่อจ่ายเงินแล้ว)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ประวัติรายเดือน -->
+            <div class="section" id="historySection" style="display: none;">
+                <h2>📚 ประวัติการคำนวณรายเดือน</h2>
+                <div class="table-container">
+                    <table id="historyTable">
+                        <thead>
+                            <tr>
+                                <th>เดือน/ปี</th>
+                                <th>เงินเดือนรายวัน</th>
+                                <th>วันทำงาน</th>
+                                <th>เงินเดือนรวม</th>
+                                <th>วันลา</th>
+                                <th>หักจากการลา</th>
+                                <th>เบิกเงิน</th>
+                                <th>ยอดติดลบเก่า</th>
+                                <th>💰 เงินที่ต้องจ่าย</th>
+                                <th>การจัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <tr>
+                                <td colspan="10" class="empty-state">ยังไม่มีประวัติ</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -525,6 +604,7 @@
                                 <th>วันลา</th>
                                 <th>หักจากการลา</th>
                                 <th>เบิกเงิน</th>
+                                <th>ยอดติดลบเก่า</th>
                                 <th>💰 เงินที่ต้องจ่าย</th>
                             </tr>
                         </thead>
@@ -532,7 +612,7 @@
                         </tbody>
                         <tfoot>
                             <tr style="background: #f8f9fa; font-weight: bold;">
-                                <td colspan="7" style="text-align: right;">รวมทั้งหมด:</td>
+                                <td colspan="8" style="text-align: right;">รวมทั้งหมด:</td>
                                 <td id="multipleSummaryTotal" style="color: #27ae60; font-size: 1.1em;">0.00 บาท</td>
                             </tr>
                         </tfoot>
@@ -548,6 +628,72 @@
                     <span>💰 รวมเงินที่ต้องจ่ายทั้งหมด:</span>
                     <span id="allSummaryTotal">0.00 บาท</span>
                 </div>
+            </div>
+
+            <!-- สถิติและรายงาน -->
+            <div class="section" id="statisticsSection" style="display: none;">
+                <h2>📈 สถิติและรายงาน</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>เลือกปี</label>
+                        <select id="statYear" onchange="updateStatistics()">
+                            <option value="">ทั้งหมด</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>เลือกลูกน้อง</label>
+                        <select id="statEmployee" onchange="updateStatistics()">
+                            <option value="">ทั้งหมด</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="statisticsContent"></div>
+            </div>
+
+            <!-- ตั้งค่า -->
+            <div class="section" id="settingsSection" style="display: none;">
+                <h2>⚙️ ตั้งค่า</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>เงินเดือนรายวันเริ่มต้น (บาท)</label>
+                        <input type="number" id="defaultDailySalary" value="500" min="0" step="0.01" onchange="saveSettings()">
+                    </div>
+                    <div class="form-group">
+                        <label>จำนวนวันทำงานเริ่มต้น</label>
+                        <input type="number" id="defaultWorkingDays" value="30" min="0" step="0.01" onchange="saveSettings()">
+                    </div>
+                </div>
+                <div style="margin-top: 20px;">
+                    <h3>การแจ้งเตือน</h3>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="notifyNegative" onchange="saveSettings()">
+                            แจ้งเตือนเมื่อมียอดติดลบ
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="notifyOverAdvance" onchange="saveSettings()">
+                            แจ้งเตือนเมื่อเบิกเงินเกิน
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal สำหรับ Import -->
+    <div id="importModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%;">
+            <h2>📥 กู้คืนข้อมูล</h2>
+            <p style="margin: 15px 0; color: #666;">⚠️ การกู้คืนข้อมูลจะทับข้อมูลปัจจุบันทั้งหมด</p>
+            <div class="form-group">
+                <label>วางข้อมูล JSON ที่สำรองไว้:</label>
+                <textarea id="importData" rows="10" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-family: monospace;"></textarea>
+            </div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn btn-primary" onclick="confirmRestore()">✅ ยืนยันกู้คืน</button>
+                <button class="btn btn-danger" onclick="closeImportModal()">❌ ยกเลิก</button>
             </div>
         </div>
     </div>
@@ -579,13 +725,20 @@
                 return;
             }
 
+            // ใช้ค่าเริ่มต้นจาก settings
+            const settings = JSON.parse(localStorage.getItem('settings') || '{}');
+            const defaultDailySalary = settings.defaultDailySalary || 500;
+            const defaultWorkingDays = settings.defaultWorkingDays || 30;
+
             const id = Date.now();
             employees[id] = {
                 name: name,
-                dailySalary: 500,
-                workingDays: 30,
+                dailySalary: defaultDailySalary,
+                workingDays: defaultWorkingDays,
                 advances: [],
-                leaves: []
+                leaves: [],
+                previousNegativeBalance: 0, // ยอดติดลบจากเดือนก่อน
+                history: [] // ประวัติการคำนวณรายเดือน
             };
 
             document.getElementById('employeeName').value = '';
@@ -644,8 +797,15 @@
             document.getElementById('summaryEmployeeName').textContent = emp.name;
             document.getElementById('dailySalary').value = emp.dailySalary;
             document.getElementById('workingDays').value = emp.workingDays;
+            document.getElementById('previousNegativeBalance').value = emp.previousNegativeBalance || 0;
             
             document.getElementById('currentEmployeeSection').style.display = 'block';
+            
+            // แสดงประวัติถ้ามี
+            if (!emp.history) {
+                emp.history = [];
+            }
+            updateHistoryTable();
             
             updateTables();
             updateSummary();
@@ -659,6 +819,7 @@
             const emp = employees[currentEmployeeId];
             emp.dailySalary = parseFloat(document.getElementById('dailySalary').value) || 0;
             emp.workingDays = parseFloat(document.getElementById('workingDays').value) || 30;
+            emp.previousNegativeBalance = parseFloat(document.getElementById('previousNegativeBalance').value) || 0;
             
             saveData();
             updateSummary();
@@ -839,8 +1000,13 @@
             // หักเงิน: ลาทั้งวัน = 1 วัน, ครึ่งวัน = 0.5 วัน
             const leaveDeduction = (emp.dailySalary * fullDayLeaves) + (emp.dailySalary * 0.5 * halfDayLeaves);
             const totalAdvance = emp.advances.reduce((sum, a) => sum + a.amount, 0);
-            // อนุญาตให้เงินติดลบได้ (เมื่อเบิกเงินเกิน)
-            const finalAmount = totalSalary - leaveDeduction - totalAdvance;
+            // ยอดติดลบจากเดือนก่อน (รองรับข้อมูลเก่า)
+            const previousNegative = emp.previousNegativeBalance || 0;
+            
+            // คำนวณเงินเดือนก่อนหักยอดติดลบ
+            const amountBeforeNegative = totalSalary - leaveDeduction - totalAdvance;
+            // หักยอดติดลบจากเดือนก่อน
+            const finalAmount = amountBeforeNegative - previousNegative;
 
             document.getElementById('summaryDailySalary').textContent = formatCurrency(emp.dailySalary);
             document.getElementById('summaryWorkingDays').textContent = `${emp.workingDays} วัน`;
@@ -855,6 +1021,60 @@
             document.getElementById('summaryLeaveDeduction').textContent = formatCurrency(leaveDeduction);
             document.getElementById('summaryTotalAdvance').textContent = formatCurrency(totalAdvance);
             
+            // แสดงเงินเดือนเดือนนี้ (หลังหักลาและเบิก)
+            const amountBeforeNegativeRow = document.getElementById('amountBeforeNegativeRow');
+            const amountBeforeNegativeElement = document.getElementById('summaryAmountBeforeNegative');
+            if (previousNegative > 0) {
+                amountBeforeNegativeRow.style.display = 'flex';
+                amountBeforeNegativeElement.textContent = formatCurrency(amountBeforeNegative);
+            } else {
+                amountBeforeNegativeRow.style.display = 'none';
+            }
+            
+            // แสดงยอดติดลบจากเดือนก่อน
+            const previousNegativeRow = document.getElementById('previousNegativeRow');
+            const previousNegativeElement = document.getElementById('summaryPreviousNegative');
+            const calculationRow = document.getElementById('calculationRow');
+            const calculationText = document.getElementById('calculationText');
+            
+            if (previousNegative > 0) {
+                previousNegativeRow.style.display = 'flex';
+                previousNegativeElement.textContent = formatCurrency(previousNegative);
+                
+                // แสดงการคำนวณ: เงินเดือนเดือนนี้ - ยอดติดลบ = ผลลัพธ์
+                calculationRow.style.display = 'flex';
+                calculationText.textContent = `${formatCurrency(amountBeforeNegative)} - ${formatCurrency(previousNegative)} = ${formatCurrency(finalAmount)}`;
+            } else {
+                previousNegativeRow.style.display = 'none';
+                calculationRow.style.display = 'none';
+            }
+            
+            // อัพเดทยอดติดลบใหม่ถ้าเงินติดลบ (เก็บไว้หักเดือนถัดไป)
+            // ตัวอย่าง: เงินเดือนเดือนนี้ 500 - ยอดติดลบ 2,500 = -2,000
+            // บันทึกยอดติดลบใหม่ = 2,000 (สำหรับหักเดือนถัดไป)
+            // หมายเหตุ: ระบบจะอัพเดทยอดติดลบใหม่เมื่อคำนวณเสร็จ (ถ้าเงินติดลบ)
+            // แต่ผู้ใช้สามารถแก้ไขได้ที่ฟิลด์ "ยอดติดลบจากเดือนก่อน"
+            if (finalAmount < 0) {
+                const newNegativeBalance = Math.abs(finalAmount);
+                // อัพเดทในข้อมูล
+                emp.previousNegativeBalance = newNegativeBalance;
+                // อัพเดทในฟิลด์ input (ถ้ายังไม่ได้แก้ไข)
+                const inputField = document.getElementById('previousNegativeBalance');
+                // อัพเดทเฉพาะถ้าค่าปัจจุบันเป็น 0 หรือเท่ากับยอดติดลบเก่า (เพื่อไม่ทับค่าที่ผู้ใช้กรอก)
+                if (inputField.value == previousNegative || inputField.value == 0) {
+                    inputField.value = newNegativeBalance;
+                }
+                saveData();
+            }
+            
+            // แสดงปุ่มรีเซ็ตถ้ามียอดติดลบ
+            const resetBtn = document.getElementById('resetNegativeBtn');
+            if (previousNegative > 0 || finalAmount < 0) {
+                resetBtn.style.display = 'inline-block';
+            } else {
+                resetBtn.style.display = 'none';
+            }
+            
             // แสดงเงินติดลบได้ และใช้สีแดงถ้าเป็นลบ
             const finalAmountElement = document.getElementById('summaryFinalAmount');
             finalAmountElement.textContent = formatCurrency(finalAmount);
@@ -862,6 +1082,146 @@
                 finalAmountElement.classList.add('negative-amount');
             } else {
                 finalAmountElement.classList.remove('negative-amount');
+            }
+        }
+
+        // รีเซ็ตยอดติดลบ (เมื่อจ่ายเงินแล้ว)
+        function resetNegativeBalance() {
+            if (!currentEmployeeId) {
+                alert('กรุณาเลือกลูกน้องก่อน');
+                return;
+            }
+
+            if (confirm('คุณต้องการรีเซ็ตยอดติดลบหรือไม่? (ใช้เมื่อจ่ายเงินแล้ว)')) {
+                const emp = employees[currentEmployeeId];
+                emp.previousNegativeBalance = 0;
+                saveData();
+                updateSummary();
+                alert('รีเซ็ตยอดติดลบเรียบร้อยแล้ว');
+            }
+        }
+
+        // บันทึกประวัติเดือนนี้
+        function saveHistory() {
+            if (!currentEmployeeId) {
+                alert('กรุณาเลือกลูกน้องก่อน');
+                return;
+            }
+
+            const emp = employees[currentEmployeeId];
+            if (!emp.history) {
+                emp.history = [];
+            }
+
+            // ตรวจสอบว่ามีประวัติเดือนนี้แล้วหรือยัง
+            const now = new Date();
+            const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const existingIndex = emp.history.findIndex(h => h.month === currentMonth);
+
+            // คำนวณข้อมูลปัจจุบัน
+            const fullDayLeaves = emp.leaves.filter(l => !(l.isHalfDay || l.type === 'halfday')).length;
+            const halfDayLeaves = emp.leaves.filter(l => l.isHalfDay || l.type === 'halfday').length;
+            const totalLeaveDaysDecimal = fullDayLeaves + (halfDayLeaves * 0.5);
+            const totalSalary = emp.dailySalary * emp.workingDays;
+            const leaveDeduction = (emp.dailySalary * fullDayLeaves) + (emp.dailySalary * 0.5 * halfDayLeaves);
+            const totalAdvance = emp.advances.reduce((sum, a) => sum + a.amount, 0);
+            const previousNegative = emp.previousNegativeBalance || 0;
+            const amountBeforeNegative = totalSalary - leaveDeduction - totalAdvance;
+            const finalAmount = amountBeforeNegative - previousNegative;
+
+            const historyData = {
+                id: Date.now(),
+                month: currentMonth,
+                monthName: `${now.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}`,
+                dailySalary: emp.dailySalary,
+                workingDays: emp.workingDays,
+                totalSalary: totalSalary,
+                fullDayLeaves: fullDayLeaves,
+                halfDayLeaves: halfDayLeaves,
+                totalLeaveDays: emp.leaves.length,
+                totalLeaveDaysDecimal: totalLeaveDaysDecimal,
+                leaveDeduction: leaveDeduction,
+                totalAdvance: totalAdvance,
+                previousNegative: previousNegative,
+                finalAmount: finalAmount,
+                timestamp: now.toISOString()
+            };
+
+            if (existingIndex >= 0) {
+                // อัพเดทประวัติเดือนนี้
+                if (confirm(`มีประวัติเดือน ${historyData.monthName} อยู่แล้ว คุณต้องการอัพเดทหรือไม่?`)) {
+                    emp.history[existingIndex] = historyData;
+                    alert('อัพเดทประวัติเรียบร้อยแล้ว');
+                } else {
+                    return;
+                }
+            } else {
+                // เพิ่มประวัติใหม่
+                emp.history.push(historyData);
+                alert('บันทึกประวัติเรียบร้อยแล้ว');
+            }
+
+            // เรียงลำดับตามเดือน (ใหม่สุดก่อน)
+            emp.history.sort((a, b) => b.month.localeCompare(a.month));
+
+            saveData();
+            updateHistoryTable();
+        }
+
+        // อัพเดทตารางประวัติ
+        function updateHistoryTable() {
+            if (!currentEmployeeId) {
+                document.getElementById('historySection').style.display = 'none';
+                return;
+            }
+
+            const emp = employees[currentEmployeeId];
+            if (!emp.history || emp.history.length === 0) {
+                document.getElementById('historySection').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('historySection').style.display = 'block';
+            const tbody = document.getElementById('historyTableBody');
+
+            tbody.innerHTML = emp.history.map(record => {
+                const leaveDaysText = record.halfDayLeaves > 0
+                    ? `${record.totalLeaveDaysDecimal} วัน (${record.fullDayLeaves} วัน, ½${record.halfDayLeaves} วัน)`
+                    : `${record.totalLeaveDays} วัน`;
+
+                const amountClass = record.finalAmount < 0 ? 'negative-amount' : '';
+                const previousNegativeClass = record.previousNegative > 0 ? 'negative-amount' : '';
+
+                return `
+                    <tr>
+                        <td><strong>${record.monthName}</strong></td>
+                        <td>${formatCurrency(record.dailySalary)}</td>
+                        <td>${record.workingDays} วัน</td>
+                        <td>${formatCurrency(record.totalSalary)}</td>
+                        <td>${leaveDaysText}</td>
+                        <td>${formatCurrency(record.leaveDeduction)}</td>
+                        <td>${formatCurrency(record.totalAdvance)}</td>
+                        <td class="${previousNegativeClass}">${record.previousNegative > 0 ? formatCurrency(record.previousNegative) : '-'}</td>
+                        <td class="${amountClass}" style="font-weight: bold;">${formatCurrency(record.finalAmount)}</td>
+                        <td>
+                            <button class="btn btn-danger btn-small" onclick="deleteHistory(${record.id})">🗑️ ลบ</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ลบประวัติ
+        function deleteHistory(historyId) {
+            if (!currentEmployeeId) return;
+
+            if (confirm('คุณต้องการลบประวัตินี้หรือไม่?')) {
+                const emp = employees[currentEmployeeId];
+                if (emp.history) {
+                    emp.history = emp.history.filter(h => h.id !== historyId);
+                    saveData();
+                    updateHistoryTable();
+                }
             }
         }
 
@@ -889,8 +1249,11 @@
                 // หักเงิน: ลาทั้งวัน = 1 วัน, ครึ่งวัน = 0.5 วัน
                 const leaveDeduction = (emp.dailySalary * fullDayLeaves) + (emp.dailySalary * 0.5 * halfDayLeaves);
                 const totalAdvance = emp.advances.reduce((sum, a) => sum + a.amount, 0);
+                // ยอดติดลบจากเดือนก่อน
+                const previousNegative = emp.previousNegativeBalance || 0;
                 // อนุญาตให้เงินติดลบได้
-                const finalAmount = totalSalary - leaveDeduction - totalAdvance;
+                const amountBeforeNegative = totalSalary - leaveDeduction - totalAdvance;
+                const finalAmount = amountBeforeNegative - previousNegative;
                 totalAll += finalAmount; // รวมเงินติดลบด้วย
 
                 const amountClass = finalAmount < 0 ? 'negative-amount' : '';
@@ -941,8 +1304,17 @@
                 // หักเงิน: ลาทั้งวัน = 1 วัน, ครึ่งวัน = 0.5 วัน
                 const leaveDeduction = (emp.dailySalary * fullDayLeaves) + (emp.dailySalary * 0.5 * halfDayLeaves);
                 const totalAdvance = emp.advances.reduce((sum, a) => sum + a.amount, 0);
+                // ยอดติดลบจากเดือนก่อน
+                const previousNegative = emp.previousNegativeBalance || 0;
                 // อนุญาตให้เงินติดลบได้
-                const finalAmount = totalSalary - leaveDeduction - totalAdvance;
+                const amountBeforeNegative = totalSalary - leaveDeduction - totalAdvance;
+                const finalAmount = amountBeforeNegative - previousNegative;
+                
+                // อัพเดทยอดติดลบใหม่ถ้าเงินติดลบ (เก็บไว้หักเดือนถัดไป)
+                if (finalAmount < 0) {
+                    emp.previousNegativeBalance = Math.abs(finalAmount);
+                }
+                
                 totalAll += finalAmount;
 
                 const amountClass = finalAmount < 0 ? 'negative-amount' : '';
@@ -950,6 +1322,7 @@
                     ? `${totalLeaveDaysDecimal} วัน (${fullDayLeaves} วัน, ½${halfDayLeaves} วัน)`
                     : `${totalLeaveDays} วัน`;
 
+                const previousNegativeClass = previousNegative > 0 ? 'negative-amount' : '';
                 return `
                     <tr>
                         <td><strong>${emp.name}</strong></td>
@@ -959,10 +1332,14 @@
                         <td>${leaveDaysText}</td>
                         <td>${formatCurrency(leaveDeduction)}</td>
                         <td>${formatCurrency(totalAdvance)}</td>
+                        <td class="${previousNegativeClass}">${previousNegative > 0 ? formatCurrency(previousNegative) : '-'}</td>
                         <td class="${amountClass}" style="font-weight: bold; font-size: 1.1em;">${formatCurrency(finalAmount)}</td>
                     </tr>
                 `;
             }).join('');
+
+            // บันทึกข้อมูลหลังจากอัพเดทยอดติดลบ
+            saveData();
 
             const totalElement = document.getElementById('multipleSummaryTotal');
             totalElement.textContent = formatCurrency(totalAll);
@@ -1014,21 +1391,405 @@
             }).format(amount) + ' บาท';
         }
 
+        // ========== ฟังก์ชัน Export/Import ==========
+        
+        // ส่งออกเป็น Excel
+        function exportToExcel() {
+            const ids = Object.keys(employees);
+            if (ids.length === 0) {
+                alert('ไม่มีข้อมูลที่จะส่งออก');
+                return;
+            }
+
+            let csv = 'ชื่อ,เงินเดือนรายวัน,วันทำงาน,เงินเดือนรวม,วันลา,หักจากการลา,เบิกเงิน,ยอดติดลบเก่า,เงินที่ต้องจ่าย\n';
+            
+            ids.forEach(id => {
+                const emp = employees[id];
+                const fullDayLeaves = emp.leaves.filter(l => !(l.isHalfDay || l.type === 'halfday')).length;
+                const halfDayLeaves = emp.leaves.filter(l => l.isHalfDay || l.type === 'halfday').length;
+                const totalSalary = emp.dailySalary * emp.workingDays;
+                const leaveDeduction = (emp.dailySalary * fullDayLeaves) + (emp.dailySalary * 0.5 * halfDayLeaves);
+                const totalAdvance = emp.advances.reduce((sum, a) => sum + a.amount, 0);
+                const previousNegative = emp.previousNegativeBalance || 0;
+                const amountBeforeNegative = totalSalary - leaveDeduction - totalAdvance;
+                const finalAmount = amountBeforeNegative - previousNegative;
+
+                csv += `${emp.name},${emp.dailySalary},${emp.workingDays},${totalSalary},${emp.leaves.length},${leaveDeduction},${totalAdvance},${previousNegative},${finalAmount}\n`;
+            });
+
+            downloadFile(csv, 'สรุปเงินลูกน้อง.csv', 'text/csv');
+        }
+
+        // ส่งออกเป็น CSV
+        function exportToCSV() {
+            exportToExcel(); // ใช้ฟังก์ชันเดียวกัน
+        }
+
+        // ฟังก์ชันช่วยสำหรับดาวน์โหลดไฟล์
+        function downloadFile(content, filename, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        // สำรองข้อมูล
+        function backupData() {
+            const data = {
+                employees: employees,
+                settings: {
+                    defaultDailySalary: document.getElementById('defaultDailySalary').value,
+                    defaultWorkingDays: document.getElementById('defaultWorkingDays').value,
+                    notifyNegative: document.getElementById('notifyNegative').checked,
+                    notifyOverAdvance: document.getElementById('notifyOverAdvance').checked
+                },
+                backupDate: new Date().toISOString()
+            };
+            
+            const json = JSON.stringify(data, null, 2);
+            downloadFile(json, `backup_${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+            alert('สำรองข้อมูลเรียบร้อยแล้ว');
+        }
+
+        // กู้คืนข้อมูล
+        function restoreData() {
+            document.getElementById('importModal').style.display = 'flex';
+        }
+
+        // ยืนยันกู้คืนข้อมูล
+        function confirmRestore() {
+            const importText = document.getElementById('importData').value.trim();
+            if (!importText) {
+                alert('กรุณาวางข้อมูล JSON');
+                return;
+            }
+
+            try {
+                const data = JSON.parse(importText);
+                if (confirm('⚠️ การกู้คืนข้อมูลจะทับข้อมูลปัจจุบันทั้งหมด คุณต้องการดำเนินการต่อหรือไม่?')) {
+                    employees = data.employees || {};
+                    if (data.settings) {
+                        document.getElementById('defaultDailySalary').value = data.settings.defaultDailySalary || 500;
+                        document.getElementById('defaultWorkingDays').value = data.settings.defaultWorkingDays || 30;
+                        document.getElementById('notifyNegative').checked = data.settings.notifyNegative || false;
+                        document.getElementById('notifyOverAdvance').checked = data.settings.notifyOverAdvance || false;
+                        saveSettings();
+                    }
+                    saveData();
+                    updateEmployeeList();
+                    closeImportModal();
+                    alert('กู้คืนข้อมูลเรียบร้อยแล้ว');
+                }
+            } catch (e) {
+                alert('ข้อมูลไม่ถูกต้อง: ' + e.message);
+            }
+        }
+
+        // ปิด Modal
+        function closeImportModal() {
+            document.getElementById('importModal').style.display = 'none';
+            document.getElementById('importData').value = '';
+        }
+
+        // ========== ฟังก์ชัน Print ==========
+        
+        function printSummary() {
+            if (!currentEmployeeId) {
+                alert('กรุณาเลือกลูกน้องก่อน');
+                return;
+            }
+
+            const printWindow = window.open('', '_blank');
+            const emp = employees[currentEmployeeId];
+            const fullDayLeaves = emp.leaves.filter(l => !(l.isHalfDay || l.type === 'halfday')).length;
+            const halfDayLeaves = emp.leaves.filter(l => l.isHalfDay || l.type === 'halfday').length;
+            const totalSalary = emp.dailySalary * emp.workingDays;
+            const leaveDeduction = (emp.dailySalary * fullDayLeaves) + (emp.dailySalary * 0.5 * halfDayLeaves);
+            const totalAdvance = emp.advances.reduce((sum, a) => sum + a.amount, 0);
+            const previousNegative = emp.previousNegativeBalance || 0;
+            const amountBeforeNegative = totalSalary - leaveDeduction - totalAdvance;
+            const finalAmount = amountBeforeNegative - previousNegative;
+
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>สรุปผลการคำนวณ - ${emp.name}</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; padding: 20px; }
+                            h1 { color: #667eea; }
+                            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                            th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                            th { background: #667eea; color: white; }
+                            .negative { color: red; font-weight: bold; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>สรุปผลการคำนวณ - ${emp.name}</h1>
+                        <p>วันที่พิมพ์: ${new Date().toLocaleDateString('th-TH')}</p>
+                        <table>
+                            <tr><th>รายการ</th><th>จำนวน</th></tr>
+                            <tr><td>เงินเดือนรายวัน</td><td>${formatCurrency(emp.dailySalary)}</td></tr>
+                            <tr><td>จำนวนวันทำงาน</td><td>${emp.workingDays} วัน</td></tr>
+                            <tr><td>เงินเดือนรวม</td><td>${formatCurrency(totalSalary)}</td></tr>
+                            <tr><td>จำนวนวันลา</td><td>${emp.leaves.length} วัน</td></tr>
+                            <tr><td>หักจากการลา</td><td>${formatCurrency(leaveDeduction)}</td></tr>
+                            <tr><td>เบิกเงิน</td><td>${formatCurrency(totalAdvance)}</td></tr>
+                            <tr><td>ยอดติดลบเก่า</td><td class="${previousNegative > 0 ? 'negative' : ''}">${previousNegative > 0 ? formatCurrency(previousNegative) : '-'}</td></tr>
+                            <tr><td><strong>เงินที่ต้องจ่าย</strong></td><td class="${finalAmount < 0 ? 'negative' : ''}"><strong>${formatCurrency(finalAmount)}</strong></td></tr>
+                        </table>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        // ========== ฟังก์ชัน Search/Filter ==========
+        
+        function filterEmployees() {
+            const searchText = document.getElementById('searchEmployee').value.toLowerCase();
+            const items = document.querySelectorAll('.employee-item');
+            
+            items.forEach(item => {
+                const name = item.querySelector('.employee-name').textContent.toLowerCase();
+                if (name.includes(searchText)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function filterHistory() {
+            const filterMonth = document.getElementById('filterMonth').value;
+            if (!currentEmployeeId) return;
+
+            const emp = employees[currentEmployeeId];
+            if (!emp.history) return;
+
+            const tbody = document.getElementById('historyTableBody');
+            const filtered = filterMonth 
+                ? emp.history.filter(h => h.month.startsWith(filterMonth))
+                : emp.history;
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="empty-state">ไม่พบข้อมูล</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(record => {
+                const leaveDaysText = record.halfDayLeaves > 0
+                    ? `${record.totalLeaveDaysDecimal} วัน (${record.fullDayLeaves} วัน, ½${record.halfDayLeaves} วัน)`
+                    : `${record.totalLeaveDays} วัน`;
+
+                const amountClass = record.finalAmount < 0 ? 'negative-amount' : '';
+                const previousNegativeClass = record.previousNegative > 0 ? 'negative-amount' : '';
+
+                return `
+                    <tr>
+                        <td><strong>${record.monthName}</strong></td>
+                        <td>${formatCurrency(record.dailySalary)}</td>
+                        <td>${record.workingDays} วัน</td>
+                        <td>${formatCurrency(record.totalSalary)}</td>
+                        <td>${leaveDaysText}</td>
+                        <td>${formatCurrency(record.leaveDeduction)}</td>
+                        <td>${formatCurrency(record.totalAdvance)}</td>
+                        <td class="${previousNegativeClass}">${record.previousNegative > 0 ? formatCurrency(record.previousNegative) : '-'}</td>
+                        <td class="${amountClass}" style="font-weight: bold;">${formatCurrency(record.finalAmount)}</td>
+                        <td>
+                            <button class="btn btn-danger btn-small" onclick="deleteHistory(${record.id})">🗑️ ลบ</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ========== ฟังก์ชัน Statistics ==========
+        
+        function showStatistics() {
+            document.getElementById('statisticsSection').style.display = 'block';
+            updateStatistics();
+        }
+
+        function updateStatistics() {
+            const year = document.getElementById('statYear').value;
+            const empId = document.getElementById('statEmployee').value;
+            
+            // อัพเดท dropdown ปี
+            const yearSelect = document.getElementById('statYear');
+            const currentYear = new Date().getFullYear();
+            if (yearSelect.children.length <= 1) {
+                for (let y = currentYear - 5; y <= currentYear + 1; y++) {
+                    const option = document.createElement('option');
+                    option.value = y;
+                    option.textContent = y;
+                    if (y == currentYear) option.selected = true;
+                    yearSelect.appendChild(option);
+                }
+            }
+
+            // อัพเดท dropdown ลูกน้อง
+            const empSelect = document.getElementById('statEmployee');
+            const ids = Object.keys(employees);
+            if (empSelect.children.length <= 1) {
+                ids.forEach(id => {
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = employees[id].name;
+                    empSelect.appendChild(option);
+                });
+            }
+
+            // คำนวณสถิติ
+            let totalSalary = 0, totalAdvance = 0, totalLeave = 0, totalFinal = 0;
+            let count = 0;
+
+            ids.forEach(id => {
+                if (empId && id != empId) return;
+                const emp = employees[id];
+                if (!emp.history) return;
+
+                emp.history.forEach(record => {
+                    if (year && !record.month.startsWith(year)) return;
+                    totalSalary += record.totalSalary;
+                    totalAdvance += record.totalAdvance;
+                    totalLeave += record.leaveDeduction;
+                    totalFinal += record.finalAmount;
+                    count++;
+                });
+            });
+
+            const content = document.getElementById('statisticsContent');
+            if (count === 0) {
+                content.innerHTML = '<p class="empty-state">ไม่มีข้อมูลสถิติ</p>';
+                return;
+            }
+
+            content.innerHTML = `
+                <div class="summary-card" style="margin-top: 20px;">
+                    <h3>📊 สถิติสรุป</h3>
+                    <div class="summary-row">
+                        <span>จำนวนรายการ:</span>
+                        <span>${count} รายการ</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>เงินเดือนรวมทั้งหมด:</span>
+                        <span>${formatCurrency(totalSalary)}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>เบิกเงินรวมทั้งหมด:</span>
+                        <span>${formatCurrency(totalAdvance)}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>หักจากการลารวม:</span>
+                        <span>${formatCurrency(totalLeave)}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>💰 เงินที่ต้องจ่ายรวม:</span>
+                        <span class="${totalFinal < 0 ? 'negative-amount' : ''}">${formatCurrency(totalFinal)}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ========== ฟังก์ชัน Settings ==========
+        
+        function showSettings() {
+            document.getElementById('settingsSection').style.display = 'block';
+            loadSettings();
+        }
+
+        function loadSettings() {
+            const settings = JSON.parse(localStorage.getItem('settings') || '{}');
+            document.getElementById('defaultDailySalary').value = settings.defaultDailySalary || 500;
+            document.getElementById('defaultWorkingDays').value = settings.defaultWorkingDays || 30;
+            document.getElementById('notifyNegative').checked = settings.notifyNegative || false;
+            document.getElementById('notifyOverAdvance').checked = settings.notifyOverAdvance || false;
+        }
+
+        function saveSettings() {
+            const settings = {
+                defaultDailySalary: parseFloat(document.getElementById('defaultDailySalary').value) || 500,
+                defaultWorkingDays: parseFloat(document.getElementById('defaultWorkingDays').value) || 30,
+                notifyNegative: document.getElementById('notifyNegative').checked,
+                notifyOverAdvance: document.getElementById('notifyOverAdvance').checked
+            };
+            localStorage.setItem('settings', JSON.stringify(settings));
+        }
+
+        // ========== ฟังก์ชัน Clear Data ==========
+        
+        function clearAllData() {
+            if (confirm('⚠️ คุณต้องการลบข้อมูลทั้งหมดหรือไม่? การกระทำนี้ไม่สามารถยกเลิกได้!')) {
+                if (confirm('⚠️⚠️ ยืนยันอีกครั้ง: คุณต้องการลบข้อมูลทั้งหมดจริงๆ หรือไม่?')) {
+                    localStorage.clear();
+                    employees = {};
+                    currentEmployeeId = null;
+                    location.reload();
+                }
+            }
+        }
+
+        // ========== ฟังก์ชัน Notifications ==========
+        
+        function checkNotifications() {
+            const settings = JSON.parse(localStorage.getItem('settings') || '{}');
+            
+            if (settings.notifyNegative) {
+                Object.keys(employees).forEach(id => {
+                    const emp = employees[id];
+                    const fullDayLeaves = emp.leaves.filter(l => !(l.isHalfDay || l.type === 'halfday')).length;
+                    const halfDayLeaves = emp.leaves.filter(l => l.isHalfDay || l.type === 'halfday').length;
+                    const totalSalary = emp.dailySalary * emp.workingDays;
+                    const leaveDeduction = (emp.dailySalary * fullDayLeaves) + (emp.dailySalary * 0.5 * halfDayLeaves);
+                    const totalAdvance = emp.advances.reduce((sum, a) => sum + a.amount, 0);
+                    const previousNegative = emp.previousNegativeBalance || 0;
+                    const amountBeforeNegative = totalSalary - leaveDeduction - totalAdvance;
+                    const finalAmount = amountBeforeNegative - previousNegative;
+
+                    if (finalAmount < 0) {
+                        console.warn(`⚠️ ${emp.name} มียอดติดลบ: ${formatCurrency(finalAmount)}`);
+                    }
+                });
+            }
+
+            if (settings.notifyOverAdvance) {
+                Object.keys(employees).forEach(id => {
+                    const emp = employees[id];
+                    const totalSalary = emp.dailySalary * emp.workingDays;
+                    const totalAdvance = emp.advances.reduce((sum, a) => sum + a.amount, 0);
+                    
+                    if (totalAdvance > totalSalary * 0.8) {
+                        console.warn(`⚠️ ${emp.name} เบิกเงินเกิน 80% ของเงินเดือน: ${formatCurrency(totalAdvance)}`);
+                    }
+                });
+            }
+        }
+
         // ตั้งค่าวันที่เริ่มต้นเป็นวันนี้
         function setTodayDate() {
             const today = new Date().toISOString().split('T')[0];
-            document.getElementById('advanceDate').value = today;
-            document.getElementById('leaveDate').value = today;
+            const advanceDate = document.getElementById('advanceDate');
+            const leaveDate = document.getElementById('leaveDate');
+            if (advanceDate) advanceDate.value = today;
+            if (leaveDate) leaveDate.value = today;
         }
 
         // โหลดข้อมูลเมื่อเริ่มต้น
         loadData();
+        loadSettings();
         setTodayDate();
 
         // อัพเดทสรุปรวมเมื่อมีการเปลี่ยนแปลง
         setInterval(() => {
             if (Object.keys(employees).length > 0) {
                 updateAllSummary();
+                checkNotifications();
             }
         }, 1000);
     </script>
