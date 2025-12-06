@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คำนวณเงินลูกน้องรายวัน</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+            transform: translateY(-2px);
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.85em;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .summary-card h3 {
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-top: 10px;
+            padding-top: 15px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge-advance {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-leave {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .badge-employee {
+            background: #667eea;
+            color: white;
+            padding: 8px 15px;
+            margin: 5px;
+            display: inline-block;
+        }
+
+        .employee-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .employee-item {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 200px;
+        }
+
+        .employee-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .employee-item.active {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .employee-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .employee-item.active .employee-name {
+            color: #667eea;
+        }
+
+        .current-employee {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .all-summary {
+            background: #27ae60;
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .all-summary h3 {
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .employee-item {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 ระบบคำนวณเงินลูกน้องรายวัน</h1>
+            <p>จัดการเบิกเงินและลางานรายคน</p>
+        </div>
+
+        <div class="content">
+            <!-- จัดการรายชื่อลูกน้อง -->
+            <div class="section">
+                <h2>👥 จัดการรายชื่อลูกน้อง</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ชื่อลูกน้อง</label>
+                        <input type="text" id="employeeName" placeholder="กรอกชื่อลูกน้อง">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="addEmployee()">➕ เพิ่มลูกน้อง</button>
+                
+                <div class="employee-list" id="employeeList">
+                    <!-- รายชื่อลูกน้องจะแสดงที่นี่ -->
+                </div>
+            </div>
+
+            <!-- แสดงคนที่เลือก -->
+            <div id="currentEmployeeSection" style="display: none;">
+                <div class="current-employee">
+                    👤 กำลังจัดการ: <span id="currentEmployeeName"></span>
+                </div>
+
+                <!-- ตั้งค่าพื้นฐาน -->
+                <div class="section">
+                    <h2>⚙️ ตั้งค่าพื้นฐาน</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>เงินเดือนรายวัน (บาท)</label>
+                            <input type="number" id="dailySalary" value="500" min="0" step="0.01" onchange="updateEmployeeSettings()">
+                        </div>
+                        <div class="form-group">
+                            <label>จำนวนวันทำงานในเดือน</label>
+                            <input type="number" id="workingDays" value="30" min="1" onchange="updateEmployeeSettings()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- เบิกเงิน -->
+                <div class="section">
+                    <h2>💵 เบิกเงิน</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>วันที่เบิก</label>
+                            <input type="date" id="advanceDate">
+                        </div>
+                        <div class="form-group">
+                            <label>จำนวนเงิน (บาท)</label>
+                            <input type="number" id="advanceAmount" min="0" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label>หมายเหตุ</label>
+                            <input type="text" id="advanceNote" placeholder="เช่น เบิกเงินล่วงหน้า">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="addAdvance()">➕ เพิ่มการเบิกเงิน</button>
+                </div>
+
+                <!-- ลางาน -->
+                <div class="section">
+                    <h2>🏖️ ลางาน</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>วันที่ลา</label>
+                            <input type="date" id="leaveDate">
+                        </div>
+                        <div class="form-group">
+                            <label>ประเภทการลา</label>
+                            <select id="leaveType">
+                                <option value="sick">ลาป่วย</option>
+                                <option value="personal">ลากิจ</option>
+                                <option value="vacation">ลาพักผ่อน</option>
+                                <option value="unpaid">ลาขาดงาน</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>หมายเหตุ</label>
+                            <input type="text" id="leaveNote" placeholder="เช่น ลาป่วย">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="addLeave()">➕ เพิ่มการลา</button>
+                </div>
+
+                <!-- รายการเบิกเงิน -->
+                <div class="section">
+                    <h2>📋 รายการเบิกเงิน</h2>
+                    <div class="table-container">
+                        <table id="advanceTable">
+                            <thead>
+                                <tr>
+                                    <th>วันที่</th>
+                                    <th>จำนวนเงิน</th>
+                                    <th>หมายเหตุ</th>
+                                    <th>การจัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="advanceTableBody">
+                                <tr>
+                                    <td colspan="4" class="empty-state">ยังไม่มีรายการเบิกเงิน</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- รายการลางาน -->
+                <div class="section">
+                    <h2>📅 รายการลางาน</h2>
+                    <div class="table-container">
+                        <table id="leaveTable">
+                            <thead>
+                                <tr>
+                                    <th>วันที่</th>
+                                    <th>ประเภท</th>
+                                    <th>หมายเหตุ</th>
+                                    <th>การจัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaveTableBody">
+                                <tr>
+                                    <td colspan="4" class="empty-state">ยังไม่มีรายการลา</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- สรุปผลรายคน -->
+                <div class="summary-card">
+                    <h3>📊 สรุปผลการคำนวณ - <span id="summaryEmployeeName"></span></h3>
+                    <div class="summary-row">
+                        <span>เงินเดือนรายวัน:</span>
+                        <span id="summaryDailySalary">0.00 บาท</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>จำนวนวันทำงาน:</span>
+                        <span id="summaryWorkingDays">0 วัน</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>เงินเดือนรวม:</span>
+                        <span id="summaryTotalSalary">0.00 บาท</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>จำนวนวันลา:</span>
+                        <span id="summaryLeaveDays">0 วัน</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>เงินที่หักจากการลา:</span>
+                        <span id="summaryLeaveDeduction">0.00 บาท</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>รวมเบิกเงิน:</span>
+                        <span id="summaryTotalAdvance">0.00 บาท</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>💰 เงินที่ต้องจ่าย:</span>
+                        <span id="summaryFinalAmount">0.00 บาท</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- สรุปรวมทั้งหมด -->
+            <div class="all-summary" id="allSummarySection" style="display: none;">
+                <h3>📊 สรุปรวมทั้งหมด</h3>
+                <div id="allSummaryContent"></div>
+                <div class="summary-row">
+                    <span>💰 รวมเงินที่ต้องจ่ายทั้งหมด:</span>
+                    <span id="allSummaryTotal">0.00 บาท</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ข้อมูล
+        let employees = {}; // { id: { name, dailySalary, workingDays, advances: [], leaves: [] } }
+        let currentEmployeeId = null;
+
+        // โหลดข้อมูลจาก localStorage
+        function loadData() {
+            const saved = localStorage.getItem('employees');
+            if (saved) {
+                employees = JSON.parse(saved);
+            }
+            updateEmployeeList();
+        }
+
+        // บันทึกข้อมูล
+        function saveData() {
+            localStorage.setItem('employees', JSON.stringify(employees));
+        }
+
+        // เพิ่มลูกน้อง
+        function addEmployee() {
+            const name = document.getElementById('employeeName').value.trim();
+            if (!name) {
+                alert('กรุณากรอกชื่อลูกน้อง');
+                return;
+            }
+
+            const id = Date.now();
+            employees[id] = {
+                name: name,
+                dailySalary: 500,
+                workingDays: 30,
+                advances: [],
+                leaves: []
+            };
+
+            document.getElementById('employeeName').value = '';
+            saveData();
+            updateEmployeeList();
+            selectEmployee(id);
+        }
+
+        // ลบลูกน้อง
+        function deleteEmployee(id) {
+            if (confirm(`คุณต้องการลบ ${employees[id].name} หรือไม่?`)) {
+                delete employees[id];
+                if (currentEmployeeId === id) {
+                    currentEmployeeId = null;
+                    document.getElementById('currentEmployeeSection').style.display = 'none';
+                }
+                saveData();
+                updateEmployeeList();
+                updateAllSummary();
+            }
+        }
+
+        // อัพเดทรายชื่อลูกน้อง
+        function updateEmployeeList() {
+            const list = document.getElementById('employeeList');
+            const ids = Object.keys(employees);
+
+            if (ids.length === 0) {
+                list.innerHTML = '<div class="empty-state">ยังไม่มีรายชื่อลูกน้อง</div>';
+                return;
+            }
+
+            list.innerHTML = ids.map(id => {
+                const emp = employees[id];
+                const isActive = currentEmployeeId === id ? 'active' : '';
+                return `
+                    <div class="employee-item ${isActive}" onclick="selectEmployee(${id})">
+                        <span class="employee-name">${emp.name}</span>
+                        <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteEmployee(${id})">🗑️</button>
+                    </div>
+                `;
+            }).join('');
+
+            updateAllSummary();
+        }
+
+        // เลือกลูกน้อง
+        function selectEmployee(id) {
+            currentEmployeeId = id;
+            const emp = employees[id];
+            
+            document.getElementById('currentEmployeeName').textContent = emp.name;
+            document.getElementById('summaryEmployeeName').textContent = emp.name;
+            document.getElementById('dailySalary').value = emp.dailySalary;
+            document.getElementById('workingDays').value = emp.workingDays;
+            
+            document.getElementById('currentEmployeeSection').style.display = 'block';
+            
+            updateTables();
+            updateSummary();
+            updateEmployeeList();
+        }
+
+        // อัพเดทการตั้งค่าลูกน้อง
+        function updateEmployeeSettings() {
+            if (!currentEmployeeId) return;
+            
+            const emp = employees[currentEmployeeId];
+            emp.dailySalary = parseFloat(document.getElementById('dailySalary').value) || 0;
+            emp.workingDays = parseInt(document.getElementById('workingDays').value) || 30;
+            
+            saveData();
+            updateSummary();
+        }
+
+        // เพิ่มการเบิกเงิน
+        function addAdvance() {
+            if (!currentEmployeeId) {
+                alert('กรุณาเลือกลูกน้องก่อน');
+                return;
+            }
+
+            const date = document.getElementById('advanceDate').value;
+            const amount = parseFloat(document.getElementById('advanceAmount').value);
+            const note = document.getElementById('advanceNote').value;
+
+            if (!date) {
+                alert('กรุณาเลือกวันที่');
+                return;
+            }
+
+            if (!amount || amount <= 0) {
+                alert('กรุณากรอกจำนวนเงินที่ถูกต้อง');
+                return;
+            }
+
+            employees[currentEmployeeId].advances.push({
+                id: Date.now(),
+                date: date,
+                amount: amount,
+                note: note || 'เบิกเงิน'
+            });
+
+            document.getElementById('advanceDate').value = '';
+            document.getElementById('advanceAmount').value = '';
+            document.getElementById('advanceNote').value = '';
+
+            saveData();
+            updateTables();
+            updateSummary();
+        }
+
+        // เพิ่มการลา
+        function addLeave() {
+            if (!currentEmployeeId) {
+                alert('กรุณาเลือกลูกน้องก่อน');
+                return;
+            }
+
+            const date = document.getElementById('leaveDate').value;
+            const type = document.getElementById('leaveType').value;
+            const note = document.getElementById('leaveNote').value;
+
+            if (!date) {
+                alert('กรุณาเลือกวันที่');
+                return;
+            }
+
+            const typeNames = {
+                'sick': 'ลาป่วย',
+                'personal': 'ลากิจ',
+                'vacation': 'ลาพักผ่อน',
+                'unpaid': 'ลาขาดงาน'
+            };
+
+            employees[currentEmployeeId].leaves.push({
+                id: Date.now(),
+                date: date,
+                type: type,
+                typeName: typeNames[type],
+                note: note || typeNames[type]
+            });
+
+            document.getElementById('leaveDate').value = '';
+            document.getElementById('leaveNote').value = '';
+
+            saveData();
+            updateTables();
+            updateSummary();
+        }
+
+        // ลบการเบิกเงิน
+        function deleteAdvance(id) {
+            if (confirm('คุณต้องการลบรายการนี้หรือไม่?')) {
+                const emp = employees[currentEmployeeId];
+                emp.advances = emp.advances.filter(a => a.id !== id);
+                saveData();
+                updateTables();
+                updateSummary();
+            }
+        }
+
+        // ลบการลา
+        function deleteLeave(id) {
+            if (confirm('คุณต้องการลบรายการนี้หรือไม่?')) {
+                const emp = employees[currentEmployeeId];
+                emp.leaves = emp.leaves.filter(l => l.id !== id);
+                saveData();
+                updateTables();
+                updateSummary();
+            }
+        }
+
+        // อัพเดทตารางเบิกเงิน
+        function updateAdvanceTable() {
+            if (!currentEmployeeId) return;
+            
+            const tbody = document.getElementById('advanceTableBody');
+            const emp = employees[currentEmployeeId];
+            const advances = emp.advances;
+            
+            if (advances.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state">ยังไม่มีรายการเบิกเงิน</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = advances.map(advance => `
+                <tr>
+                    <td>${formatDate(advance.date)}</td>
+                    <td>${formatCurrency(advance.amount)}</td>
+                    <td>${advance.note}</td>
+                    <td>
+                        <button class="btn btn-danger btn-small" onclick="deleteAdvance(${advance.id})">🗑️ ลบ</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // อัพเดทตารางลา
+        function updateLeaveTable() {
+            if (!currentEmployeeId) return;
+            
+            const tbody = document.getElementById('leaveTableBody');
+            const emp = employees[currentEmployeeId];
+            const leaves = emp.leaves;
+            
+            if (leaves.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state">ยังไม่มีรายการลา</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = leaves.map(leave => `
+                <tr>
+                    <td>${formatDate(leave.date)}</td>
+                    <td><span class="badge badge-leave">${leave.typeName}</span></td>
+                    <td>${leave.note}</td>
+                    <td>
+                        <button class="btn btn-danger btn-small" onclick="deleteLeave(${leave.id})">🗑️ ลบ</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // อัพเดทตารางทั้งหมด
+        function updateTables() {
+            updateAdvanceTable();
+            updateLeaveTable();
+        }
+
+        // อัพเดทสรุปผลรายคน
+        function updateSummary() {
+            if (!currentEmployeeId) return;
+            
+            const emp = employees[currentEmployeeId];
+            const totalLeaveDays = emp.leaves.length;
+            const totalSalary = emp.dailySalary * emp.workingDays;
+            const leaveDeduction = emp.dailySalary * totalLeaveDays;
+            const totalAdvance = emp.advances.reduce((sum, a) => sum + a.amount, 0);
+            const finalAmount = totalSalary - leaveDeduction - totalAdvance;
+
+            document.getElementById('summaryDailySalary').textContent = formatCurrency(emp.dailySalary);
+            document.getElementById('summaryWorkingDays').textContent = `${emp.workingDays} วัน`;
+            document.getElementById('summaryTotalSalary').textContent = formatCurrency(totalSalary);
+            document.getElementById('summaryLeaveDays').textContent = `${totalLeaveDays} วัน`;
+            document.getElementById('summaryLeaveDeduction').textContent = formatCurrency(leaveDeduction);
+            document.getElementById('summaryTotalAdvance').textContent = formatCurrency(totalAdvance);
+            document.getElementById('summaryFinalAmount').textContent = formatCurrency(Math.max(0, finalAmount));
+        }
+
+        // อัพเดทสรุปรวมทั้งหมด
+        function updateAllSummary() {
+            const ids = Object.keys(employees);
+            const summarySection = document.getElementById('allSummarySection');
+            
+            if (ids.length === 0) {
+                summarySection.style.display = 'none';
+                return;
+            }
+
+            summarySection.style.display = 'block';
+            
+            let totalAll = 0;
+            const summaryContent = ids.map(id => {
+                const emp = employees[id];
+                const totalLeaveDays = emp.leaves.length;
+                const totalSalary = emp.dailySalary * emp.workingDays;
+                const leaveDeduction = emp.dailySalary * totalLeaveDays;
+                const totalAdvance = emp.advances.reduce((sum, a) => sum + a.amount, 0);
+                const finalAmount = totalSalary - leaveDeduction - totalAdvance;
+                totalAll += Math.max(0, finalAmount);
+
+                return `
+                    <div class="summary-row">
+                        <span>${emp.name}:</span>
+                        <span>${formatCurrency(Math.max(0, finalAmount))}</span>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('allSummaryContent').innerHTML = summaryContent;
+            document.getElementById('allSummaryTotal').textContent = formatCurrency(totalAll);
+        }
+
+        // จัดรูปแบบวันที่
+        function formatDate(dateString) {
+            const date = new Date(dateString + 'T00:00:00');
+            const day = date.getDate();
+            const month = date.getMonth() + 1;
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+
+        // จัดรูปแบบเงิน
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('th-TH', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(amount) + ' บาท';
+        }
+
+        // ตั้งค่าวันที่เริ่มต้นเป็นวันนี้
+        function setTodayDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('advanceDate').value = today;
+            document.getElementById('leaveDate').value = today;
+        }
+
+        // โหลดข้อมูลเมื่อเริ่มต้น
+        loadData();
+        setTodayDate();
+
+        // อัพเดทสรุปรวมเมื่อมีการเปลี่ยนแปลง
+        setInterval(() => {
+            if (Object.keys(employees).length > 0) {
+                updateAllSummary();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
