@@ -170,6 +170,16 @@
             background: #f8f9fa;
         }
 
+        tfoot {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+
+        tfoot td {
+            border-top: 2px solid #667eea;
+            padding: 15px;
+        }
+
         .summary-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -222,6 +232,11 @@
             color: #0c5460;
         }
 
+        .negative-amount {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
         .badge-employee {
             background: #667eea;
             color: white;
@@ -248,6 +263,19 @@
             align-items: center;
             justify-content: space-between;
             min-width: 200px;
+        }
+
+        .employee-checkbox {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .employee-item-content {
+            display: flex;
+            align-items: center;
+            flex: 1;
         }
 
         .employee-item:hover {
@@ -327,6 +355,12 @@
                 </div>
                 <button class="btn btn-primary" onclick="addEmployee()">➕ เพิ่มลูกน้อง</button>
                 
+                <div style="margin-top: 20px; padding: 15px; background: #e8f4f8; border-radius: 10px;">
+                    <button class="btn btn-success" onclick="calculateMultipleEmployees()">💰 คำนวณเงินหลายคนพร้อมกัน</button>
+                    <button class="btn btn-primary" onclick="selectAllEmployees()">☑️ เลือกทั้งหมด</button>
+                    <button class="btn btn-primary" onclick="deselectAllEmployees()">☐ ยกเลิกเลือกทั้งหมด</button>
+                </div>
+                
                 <div class="employee-list" id="employeeList">
                     <!-- รายชื่อลูกน้องจะแสดงที่นี่ -->
                 </div>
@@ -348,7 +382,7 @@
                         </div>
                         <div class="form-group">
                             <label>จำนวนวันทำงานในเดือน</label>
-                            <input type="number" id="workingDays" value="30" min="1" onchange="updateEmployeeSettings()">
+                            <input type="number" id="workingDays" value="30" min="0" step="0.01" onchange="updateEmployeeSettings()">
                         </div>
                     </div>
                 </div>
@@ -388,6 +422,7 @@
                                 <option value="personal">ลากิจ</option>
                                 <option value="vacation">ลาพักผ่อน</option>
                                 <option value="unpaid">ลาขาดงาน</option>
+                                <option value="halfday">ทำงานครึ่งวัน</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -476,6 +511,35 @@
                 </div>
             </div>
 
+            <!-- สรุปผลหลายคนพร้อมกัน -->
+            <div class="section" id="multipleSummarySection" style="display: none;">
+                <h2>💰 สรุปผลการคำนวณหลายคน</h2>
+                <div class="table-container">
+                    <table id="multipleSummaryTable">
+                        <thead>
+                            <tr>
+                                <th>ชื่อ</th>
+                                <th>เงินเดือนรายวัน</th>
+                                <th>วันทำงาน</th>
+                                <th>เงินเดือนรวม</th>
+                                <th>วันลา</th>
+                                <th>หักจากการลา</th>
+                                <th>เบิกเงิน</th>
+                                <th>💰 เงินที่ต้องจ่าย</th>
+                            </tr>
+                        </thead>
+                        <tbody id="multipleSummaryTableBody">
+                        </tbody>
+                        <tfoot>
+                            <tr style="background: #f8f9fa; font-weight: bold;">
+                                <td colspan="7" style="text-align: right;">รวมทั้งหมด:</td>
+                                <td id="multipleSummaryTotal" style="color: #27ae60; font-size: 1.1em;">0.00 บาท</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
             <!-- สรุปรวมทั้งหมด -->
             <div class="all-summary" id="allSummarySection" style="display: none;">
                 <h3>📊 สรุปรวมทั้งหมด</h3>
@@ -558,8 +622,11 @@
                 const emp = employees[id];
                 const isActive = currentEmployeeId === id ? 'active' : '';
                 return `
-                    <div class="employee-item ${isActive}" onclick="selectEmployee(${id})">
-                        <span class="employee-name">${emp.name}</span>
+                    <div class="employee-item ${isActive}">
+                        <div class="employee-item-content" onclick="selectEmployee(${id})">
+                            <input type="checkbox" class="employee-checkbox" id="checkbox_${id}" onclick="event.stopPropagation();">
+                            <span class="employee-name">${emp.name}</span>
+                        </div>
                         <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteEmployee(${id})">🗑️</button>
                     </div>
                 `;
@@ -591,7 +658,7 @@
             
             const emp = employees[currentEmployeeId];
             emp.dailySalary = parseFloat(document.getElementById('dailySalary').value) || 0;
-            emp.workingDays = parseInt(document.getElementById('workingDays').value) || 30;
+            emp.workingDays = parseFloat(document.getElementById('workingDays').value) || 30;
             
             saveData();
             updateSummary();
@@ -654,7 +721,8 @@
                 'sick': 'ลาป่วย',
                 'personal': 'ลากิจ',
                 'vacation': 'ลาพักผ่อน',
-                'unpaid': 'ลาขาดงาน'
+                'unpaid': 'ลาขาดงาน',
+                'halfday': 'ทำงานครึ่งวัน'
             };
 
             employees[currentEmployeeId].leaves.push({
@@ -662,7 +730,8 @@
                 date: date,
                 type: type,
                 typeName: typeNames[type],
-                note: note || typeNames[type]
+                note: note || typeNames[type],
+                isHalfDay: type === 'halfday'
             });
 
             document.getElementById('leaveDate').value = '';
@@ -733,16 +802,20 @@
                 return;
             }
 
-            tbody.innerHTML = leaves.map(leave => `
+            tbody.innerHTML = leaves.map(leave => {
+                const isHalfDay = leave.isHalfDay || leave.type === 'halfday';
+                const badgeText = isHalfDay ? `${leave.typeName} (½ วัน)` : leave.typeName;
+                return `
                 <tr>
                     <td>${formatDate(leave.date)}</td>
-                    <td><span class="badge badge-leave">${leave.typeName}</span></td>
+                    <td><span class="badge badge-leave">${badgeText}</span></td>
                     <td>${leave.note}</td>
                     <td>
                         <button class="btn btn-danger btn-small" onclick="deleteLeave(${leave.id})">🗑️ ลบ</button>
                     </td>
                 </tr>
-            `).join('');
+            `;
+            }).join('');
         }
 
         // อัพเดทตารางทั้งหมด
@@ -756,19 +829,40 @@
             if (!currentEmployeeId) return;
             
             const emp = employees[currentEmployeeId];
+            // คำนวณวันลาทั้งวัน (รองรับข้อมูลเก่าที่ไม่มี isHalfDay)
+            const fullDayLeaves = emp.leaves.filter(l => !(l.isHalfDay || l.type === 'halfday')).length;
+            // คำนวณวันลาครึ่งวัน
+            const halfDayLeaves = emp.leaves.filter(l => l.isHalfDay || l.type === 'halfday').length;
             const totalLeaveDays = emp.leaves.length;
+            
             const totalSalary = emp.dailySalary * emp.workingDays;
-            const leaveDeduction = emp.dailySalary * totalLeaveDays;
+            // หักเงิน: ลาทั้งวัน = 1 วัน, ครึ่งวัน = 0.5 วัน
+            const leaveDeduction = (emp.dailySalary * fullDayLeaves) + (emp.dailySalary * 0.5 * halfDayLeaves);
             const totalAdvance = emp.advances.reduce((sum, a) => sum + a.amount, 0);
+            // อนุญาตให้เงินติดลบได้ (เมื่อเบิกเงินเกิน)
             const finalAmount = totalSalary - leaveDeduction - totalAdvance;
 
             document.getElementById('summaryDailySalary').textContent = formatCurrency(emp.dailySalary);
             document.getElementById('summaryWorkingDays').textContent = `${emp.workingDays} วัน`;
             document.getElementById('summaryTotalSalary').textContent = formatCurrency(totalSalary);
-            document.getElementById('summaryLeaveDays').textContent = `${totalLeaveDays} วัน`;
+            // แสดงจำนวนวันลาเป็นทศนิยม (ครึ่งวัน = 0.5 วัน)
+            const totalLeaveDaysDecimal = fullDayLeaves + (halfDayLeaves * 0.5);
+            if (halfDayLeaves > 0) {
+                document.getElementById('summaryLeaveDays').textContent = `${totalLeaveDaysDecimal} วัน (ทั้งวัน ${fullDayLeaves} วัน, ครึ่งวัน ${halfDayLeaves} วัน)`;
+            } else {
+                document.getElementById('summaryLeaveDays').textContent = `${totalLeaveDays} วัน`;
+            }
             document.getElementById('summaryLeaveDeduction').textContent = formatCurrency(leaveDeduction);
             document.getElementById('summaryTotalAdvance').textContent = formatCurrency(totalAdvance);
-            document.getElementById('summaryFinalAmount').textContent = formatCurrency(Math.max(0, finalAmount));
+            
+            // แสดงเงินติดลบได้ และใช้สีแดงถ้าเป็นลบ
+            const finalAmountElement = document.getElementById('summaryFinalAmount');
+            finalAmountElement.textContent = formatCurrency(finalAmount);
+            if (finalAmount < 0) {
+                finalAmountElement.classList.add('negative-amount');
+            } else {
+                finalAmountElement.classList.remove('negative-amount');
+            }
         }
 
         // อัพเดทสรุปรวมทั้งหมด
@@ -786,23 +880,121 @@
             let totalAll = 0;
             const summaryContent = ids.map(id => {
                 const emp = employees[id];
-                const totalLeaveDays = emp.leaves.length;
+                // คำนวณวันลาทั้งวัน (รองรับข้อมูลเก่าที่ไม่มี isHalfDay)
+                const fullDayLeaves = emp.leaves.filter(l => !(l.isHalfDay || l.type === 'halfday')).length;
+                // คำนวณวันลาครึ่งวัน
+                const halfDayLeaves = emp.leaves.filter(l => l.isHalfDay || l.type === 'halfday').length;
+                
                 const totalSalary = emp.dailySalary * emp.workingDays;
-                const leaveDeduction = emp.dailySalary * totalLeaveDays;
+                // หักเงิน: ลาทั้งวัน = 1 วัน, ครึ่งวัน = 0.5 วัน
+                const leaveDeduction = (emp.dailySalary * fullDayLeaves) + (emp.dailySalary * 0.5 * halfDayLeaves);
                 const totalAdvance = emp.advances.reduce((sum, a) => sum + a.amount, 0);
+                // อนุญาตให้เงินติดลบได้
                 const finalAmount = totalSalary - leaveDeduction - totalAdvance;
-                totalAll += Math.max(0, finalAmount);
+                totalAll += finalAmount; // รวมเงินติดลบด้วย
 
+                const amountClass = finalAmount < 0 ? 'negative-amount' : '';
                 return `
                     <div class="summary-row">
                         <span>${emp.name}:</span>
-                        <span>${formatCurrency(Math.max(0, finalAmount))}</span>
+                        <span class="${amountClass}">${formatCurrency(finalAmount)}</span>
                     </div>
                 `;
             }).join('');
 
             document.getElementById('allSummaryContent').innerHTML = summaryContent;
-            document.getElementById('allSummaryTotal').textContent = formatCurrency(totalAll);
+            const totalElement = document.getElementById('allSummaryTotal');
+            totalElement.textContent = formatCurrency(totalAll);
+            if (totalAll < 0) {
+                totalElement.classList.add('negative-amount');
+            } else {
+                totalElement.classList.remove('negative-amount');
+            }
+        }
+
+        // คำนวณเงินหลายคนพร้อมกัน
+        function calculateMultipleEmployees() {
+            const ids = Object.keys(employees);
+            const selectedIds = ids.filter(id => {
+                const checkbox = document.getElementById(`checkbox_${id}`);
+                return checkbox && checkbox.checked;
+            });
+
+            if (selectedIds.length === 0) {
+                alert('กรุณาเลือกลูกน้องอย่างน้อย 1 คน');
+                return;
+            }
+
+            const tbody = document.getElementById('multipleSummaryTableBody');
+            let totalAll = 0;
+
+            tbody.innerHTML = selectedIds.map(id => {
+                const emp = employees[id];
+                // คำนวณวันลาทั้งวัน
+                const fullDayLeaves = emp.leaves.filter(l => !(l.isHalfDay || l.type === 'halfday')).length;
+                // คำนวณวันลาครึ่งวัน
+                const halfDayLeaves = emp.leaves.filter(l => l.isHalfDay || l.type === 'halfday').length;
+                const totalLeaveDays = emp.leaves.length;
+                const totalLeaveDaysDecimal = fullDayLeaves + (halfDayLeaves * 0.5);
+                
+                const totalSalary = emp.dailySalary * emp.workingDays;
+                // หักเงิน: ลาทั้งวัน = 1 วัน, ครึ่งวัน = 0.5 วัน
+                const leaveDeduction = (emp.dailySalary * fullDayLeaves) + (emp.dailySalary * 0.5 * halfDayLeaves);
+                const totalAdvance = emp.advances.reduce((sum, a) => sum + a.amount, 0);
+                // อนุญาตให้เงินติดลบได้
+                const finalAmount = totalSalary - leaveDeduction - totalAdvance;
+                totalAll += finalAmount;
+
+                const amountClass = finalAmount < 0 ? 'negative-amount' : '';
+                const leaveDaysText = halfDayLeaves > 0 
+                    ? `${totalLeaveDaysDecimal} วัน (${fullDayLeaves} วัน, ½${halfDayLeaves} วัน)`
+                    : `${totalLeaveDays} วัน`;
+
+                return `
+                    <tr>
+                        <td><strong>${emp.name}</strong></td>
+                        <td>${formatCurrency(emp.dailySalary)}</td>
+                        <td>${emp.workingDays} วัน</td>
+                        <td>${formatCurrency(totalSalary)}</td>
+                        <td>${leaveDaysText}</td>
+                        <td>${formatCurrency(leaveDeduction)}</td>
+                        <td>${formatCurrency(totalAdvance)}</td>
+                        <td class="${amountClass}" style="font-weight: bold; font-size: 1.1em;">${formatCurrency(finalAmount)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            const totalElement = document.getElementById('multipleSummaryTotal');
+            totalElement.textContent = formatCurrency(totalAll);
+            if (totalAll < 0) {
+                totalElement.classList.add('negative-amount');
+            } else {
+                totalElement.classList.remove('negative-amount');
+            }
+
+            // แสดงตารางสรุป
+            document.getElementById('multipleSummarySection').style.display = 'block';
+            
+            // Scroll to table
+            document.getElementById('multipleSummarySection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // เลือกทั้งหมด
+        function selectAllEmployees() {
+            const ids = Object.keys(employees);
+            ids.forEach(id => {
+                const checkbox = document.getElementById(`checkbox_${id}`);
+                if (checkbox) checkbox.checked = true;
+            });
+        }
+
+        // ยกเลิกเลือกทั้งหมด
+        function deselectAllEmployees() {
+            const ids = Object.keys(employees);
+            ids.forEach(id => {
+                const checkbox = document.getElementById(`checkbox_${id}`);
+                if (checkbox) checkbox.checked = false;
+            });
         }
 
         // จัดรูปแบบวันที่
