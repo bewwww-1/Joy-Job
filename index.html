@@ -1909,7 +1909,6 @@
                 return;
             }
 
-            const printWindow = window.open('', '_blank');
             const emp = employees[currentEmployeeId];
             const fullDayLeaves = emp.leaves.filter(l => !(l.isHalfDay || l.type === 'halfday')).length;
             const halfDayLeaves = emp.leaves.filter(l => l.isHalfDay || l.type === 'halfday').length;
@@ -1920,41 +1919,49 @@
             const amountBeforeNegative = totalSalary - leaveDeduction - totalAdvance;
             const finalAmount = amountBeforeNegative - previousNegative;
 
-            printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>สรุปผลการคำนวณ - ${emp.name}</title>
-                        <style>
-                            body { font-family: Arial, sans-serif; padding: 20px; }
-                            h1 { color: #667eea; }
-                            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                            th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-                            th { background: #667eea; color: white; }
-                            .negative { color: red; font-weight: bold; }
-                        </style>
-                    </head>
-                    <body>
-                        <h1>สรุปผลการคำนวณ - ${emp.name}</h1>
-                        <p>วันที่พิมพ์: ${new Date().toLocaleDateString('th-TH')}</p>
-                        <table>
-                            <tr><th>รายการ</th><th>จำนวน</th></tr>
-                            <tr><td>เงินเดือนรายวัน</td><td>${formatCurrency(emp.dailySalary)}</td></tr>
-                            <tr><td>จำนวนวันทำงาน</td><td>${emp.workingDays} วัน</td></tr>
-                            <tr><td>เงินเดือนรวม</td><td>${formatCurrency(totalSalary)}</td></tr>
-                            <tr><td>จำนวนวันลา</td><td>${emp.leaves.length} วัน</td></tr>
-                            <tr><td>หักจากการลา</td><td>${formatCurrency(leaveDeduction)}</td></tr>
-                            <tr><td>เบิกเงิน</td><td>${formatCurrency(totalAdvance)}</td></tr>
-                            <tr><td>ยอดติดลบเก่า</td><td class="${previousNegative > 0 ? 'negative' : ''}">${previousNegative > 0 ? formatCurrency(previousNegative) : '-'}</td></tr>
-                            <tr><td><strong>เงินที่ต้องจ่าย</strong></td><td class="${finalAmount < 0 ? 'negative' : ''}"><strong>${formatCurrency(finalAmount)}</strong></td></tr>
-                        </table>
-                    </body>
-                </html>
-            `);
-            printWindow.document.close();
-            // รอให้โหลดเสร็จก่อนพิมพ์ (สำคัญสำหรับมือถือ)
+            // สร้าง hidden div สำหรับพิมพ์
+            const printContent = document.createElement('div');
+            printContent.id = 'printContent';
+            printContent.style.cssText = 'position: absolute; left: -9999px; width: 210mm; padding: 20px; background: white;';
+            printContent.innerHTML = `
+                <style>
+                    @media print {
+                        body { margin: 0; padding: 0; }
+                        #printContent { position: static; left: 0; width: 100%; }
+                    }
+                    body { font-family: Arial, sans-serif; padding: 20px; }
+                    h1 { color: #667eea; }
+                    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                    th { background: #667eea; color: white; }
+                    .negative { color: red; font-weight: bold; }
+                </style>
+                <h1>สรุปผลการคำนวณ - ${emp.name}</h1>
+                <p>วันที่พิมพ์: ${new Date().toLocaleDateString('th-TH')}</p>
+                <table>
+                    <tr><th>รายการ</th><th>จำนวน</th></tr>
+                    <tr><td>เงินเดือนรายวัน</td><td>${formatCurrency(emp.dailySalary)}</td></tr>
+                    <tr><td>จำนวนวันทำงาน</td><td>${emp.workingDays} วัน</td></tr>
+                    <tr><td>เงินเดือนรวม</td><td>${formatCurrency(totalSalary)}</td></tr>
+                    <tr><td>จำนวนวันลา</td><td>${fullDayLeaves + (halfDayLeaves * 0.5)} วัน (ทั้งวัน ${fullDayLeaves} วัน, ครึ่งวัน ${halfDayLeaves} วัน)</td></tr>
+                    <tr><td>หักจากการลา</td><td>${formatCurrency(leaveDeduction)}</td></tr>
+                    <tr><td>เบิกเงิน</td><td>${formatCurrency(totalAdvance)}</td></tr>
+                    <tr><td>ยอดติดลบเก่า</td><td class="${previousNegative > 0 ? 'negative' : ''}">${previousNegative > 0 ? formatCurrency(previousNegative) : '-'}</td></tr>
+                    <tr><td><strong>💰 เงินที่ต้องจ่าย</strong></td><td class="${finalAmount < 0 ? 'negative' : ''}"><strong>${formatCurrency(finalAmount)}</strong></td></tr>
+                </table>
+            `;
+
+            document.body.appendChild(printContent);
+            
+            // พิมพ์
+            window.print();
+            
+            // ลบ element หลังจากพิมพ์เสร็จ
             setTimeout(() => {
-                printWindow.print();
-            }, 250);
+                if (printContent.parentNode) {
+                    printContent.parentNode.removeChild(printContent);
+                }
+            }, 1000);
         }
 
         // พิมพ์สรุปทั้งหมด
@@ -1965,14 +1972,12 @@
                 return;
             }
 
-            const printWindow = window.open('', '_blank');
             let htmlContent = `
-                <html>
-                    <head>
-                        <title>สรุปผลการคำนวณทั้งหมด</title>
-                        <meta charset="UTF-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <style>
+                <style>
+                    @media print {
+                        body { margin: 0; padding: 0; }
+                        #printContent { position: static; left: 0; width: 100%; }
+                    }
                             body { 
                                 font-family: 'Sarabun', Arial, sans-serif; 
                                 padding: 20px; 
@@ -2065,21 +2070,31 @@
             });
 
             htmlContent += `
-                        <div class="total-row">
-                            <div class="summary-row">
-                                <span>💰 รวมเงินที่ต้องจ่ายทั้งหมด:</span>
-                                <span class="${totalAll < 0 ? 'negative' : ''}">${formatCurrency(totalAll)}</span>
-                            </div>
-                        </div>
-                    </body>
-                </html>
+                <div class="total-row">
+                    <div class="summary-row">
+                        <span>💰 รวมเงินที่ต้องจ่ายทั้งหมด:</span>
+                        <span class="${totalAll < 0 ? 'negative' : ''}">${formatCurrency(totalAll)}</span>
+                    </div>
+                </div>
             `;
 
-            printWindow.document.write(htmlContent);
-            printWindow.document.close();
+            // สร้าง hidden div สำหรับพิมพ์
+            const printContent = document.createElement('div');
+            printContent.id = 'printContent';
+            printContent.style.cssText = 'position: absolute; left: -9999px; width: 210mm; padding: 20px; background: white;';
+            printContent.innerHTML = htmlContent;
+
+            document.body.appendChild(printContent);
+            
+            // พิมพ์
+            window.print();
+            
+            // ลบ element หลังจากพิมพ์เสร็จ
             setTimeout(() => {
-                printWindow.print();
-            }, 250);
+                if (printContent.parentNode) {
+                    printContent.parentNode.removeChild(printContent);
+                }
+            }, 1000);
         }
 
         // พิมพ์หน้าปัจจุบัน
