@@ -32,6 +32,120 @@
             color: white;
             padding: 30px;
             text-align: center;
+            position: relative;
+        }
+
+        .menu-button {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 24px;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .menu-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: -300px;
+            top: 0;
+            width: 300px;
+            height: 100vh;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            transition: left 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar.open {
+            left: 0;
+            pointer-events: auto;
+        }
+
+        .sidebar-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-header h3 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+
+        .close-sidebar {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 20px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .sidebar-content {
+            padding: 20px;
+        }
+
+        .sidebar-employee-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+        }
+
+        .sidebar-employee-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .sidebar-employee-item.active {
+            background: #f0f4ff;
+            border-left-color: #667eea;
+        }
+
+        .sidebar-employee-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-employee-salary {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            pointer-events: none;
+        }
+
+        .overlay.show {
+            display: block;
+            pointer-events: auto;
         }
 
         .header h1 {
@@ -334,13 +448,63 @@
                 min-width: 100%;
             }
         }
+
+        /* CSS สำหรับการพิมพ์ */
+        @media print {
+            body {
+                background: white !important;
+            }
+            
+            .container {
+                box-shadow: none !important;
+                border-radius: 0 !important;
+            }
+            
+            .header {
+                background: #667eea !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            .btn, .menu-button, .close-sidebar, .overlay, .sidebar {
+                display: none !important;
+            }
+            
+            .section {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            
+            .summary-card {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            
+            table {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+        <div class="container">
         <div class="header">
+            <button class="menu-button" onclick="toggleSidebar()">☰</button>
             <h1>💰 ระบบคำนวณเงินลูกน้องรายวัน</h1>
             <p>จัดการเบิกเงินและลางานรายคน</p>
+        </div>
+
+        <!-- Sidebar Menu -->
+        <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>👥 รายชื่อลูกน้อง</h3>
+                <button class="close-sidebar" onclick="toggleSidebar()">✕</button>
+            </div>
+            <div class="sidebar-content" id="sidebarEmployeeList">
+                <div class="empty-state">กำลังโหลด...</div>
+            </div>
         </div>
 
         <div class="content">
@@ -350,7 +514,9 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
                     <button class="btn btn-success" onclick="exportToExcel()">📊 ส่งออก Excel</button>
                     <button class="btn btn-success" onclick="exportToCSV()">📄 ส่งออก CSV</button>
-                    <button class="btn btn-primary" onclick="printSummary()">🖨️ พิมพ์สรุปผล</button>
+                    <button class="btn btn-primary" onclick="printSummary()">🖨️ พิมพ์สรุปคนที่เลือก</button>
+                    <button class="btn btn-primary" onclick="printAllSummary()">🖨️ พิมพ์สรุปทั้งหมด</button>
+                    <button class="btn btn-primary" onclick="printCurrentPage()">🖨️ พิมพ์หน้านี้</button>
                     <button class="btn btn-primary" onclick="backupData()">💾 สำรองข้อมูล</button>
                     <button class="btn btn-primary" onclick="restoreData()">📥 กู้คืนข้อมูล</button>
                     <button class="btn btn-primary" onclick="showStatistics()">📈 สถิติและรายงาน</button>
@@ -384,6 +550,7 @@
                     </div>
                 </div>
                 <button class="btn btn-primary" onclick="addEmployee()">➕ เพิ่มลูกน้อง</button>
+                <button class="btn btn-success" onclick="addAllEmployeesWithSalary()">📋 เพิ่มลูกน้องทั้งหมดพร้อมค่าแรง</button>
                 
                 <div style="margin-top: 20px; padding: 15px; background: #e8f4f8; border-radius: 10px;">
                     <button class="btn btn-success" onclick="calculateMultipleEmployees()">💰 คำนวณเงินหลายคนพร้อมกัน</button>
@@ -401,6 +568,17 @@
                 <div class="current-employee">
                     👤 กำลังจัดการ: <span id="currentEmployeeName"></span>
                 </div>
+            
+            <!-- ข้อความแจ้งเตือนเมื่อยังไม่ได้เลือกลูกน้อง -->
+            <div id="noEmployeeSelected" class="section" style="text-align: center; padding: 40px;">
+                <h2 style="color: #667eea; margin-bottom: 20px;">👥 กรุณาเลือกลูกน้อง</h2>
+                <p style="color: #666; font-size: 1.1em; margin-bottom: 20px;">
+                    คลิกปุ่ม <strong>☰</strong> ที่มุมซ้ายบน หรือเลือกลูกน้องจากรายการด้านล่าง
+                </p>
+                <p style="color: #999; font-size: 0.9em;">
+                    หลังจากเลือกลูกน้องแล้ว คุณจะสามารถกรอกข้อมูลและจัดการข้อมูลได้
+                </p>
+            </div>
 
                 <!-- ตั้งค่าพื้นฐาน -->
                 <div class="section">
@@ -557,6 +735,7 @@
                     </div>
                     <div style="margin-top: 15px; text-align: center;">
                         <button class="btn btn-success" onclick="saveHistory()">💾 บันทึกประวัติเดือนนี้</button>
+                        <button class="btn btn-primary" onclick="printSummary()" style="margin: 5px;">🖨️ พิมพ์สรุปคนนี้</button>
                         <button class="btn btn-success" onclick="resetNegativeBalance()" id="resetNegativeBtn" style="display: none;">✅ รีเซ็ตยอดติดลบ (เมื่อจ่ายเงินแล้ว)</button>
                     </div>
                 </div>
@@ -708,8 +887,49 @@
             const saved = localStorage.getItem('employees');
             if (saved) {
                 employees = JSON.parse(saved);
+            } else {
+                // เพิ่มลูกน้องเริ่มต้นพร้อมค่าแรง
+                initializeDefaultEmployees();
             }
             updateEmployeeList();
+        }
+
+        // เพิ่มลูกน้องเริ่มต้นพร้อมค่าแรง
+        function initializeDefaultEmployees() {
+            const employeeData = [
+                { name: 'นพ', salary: 700 },
+                { name: 'หวัง', salary: 550 },
+                { name: 'คำ', salary: 450 },
+                { name: 'โก๊ะ', salary: 300 },
+                { name: 'ต้อม', salary: 450 },
+                { name: 'บัตร', salary: 600 },
+                { name: 'เท่ง', salary: 700 },
+                { name: 'วัน', salary: 500 },
+                { name: 'อาท', salary: 700 },
+                { name: 'สมชาย', salary: 600 },
+                { name: 'นิด', salary: 400 },
+                { name: 'จัน', salary: 600 },
+                { name: 'เดี่ยว', salary: 500 },
+                { name: 'หนึ่ง', salary: 500 }
+            ];
+
+            const settings = JSON.parse(localStorage.getItem('settings') || '{}');
+            const defaultWorkingDays = settings.defaultWorkingDays || 30;
+
+            employeeData.forEach((emp, index) => {
+                const id = Date.now() + index;
+                employees[id] = {
+                    name: emp.name,
+                    dailySalary: emp.salary,
+                    workingDays: defaultWorkingDays,
+                    advances: [],
+                    leaves: [],
+                    previousNegativeBalance: 0,
+                    history: []
+                };
+            });
+
+            saveData();
         }
 
         // บันทึกข้อมูล
@@ -747,6 +967,110 @@
             selectEmployee(id);
         }
 
+        // เพิ่มลูกน้องทั้งหมดพร้อมค่าแรง
+        function addAllEmployeesWithSalary() {
+            if (Object.keys(employees).length > 0) {
+                if (!confirm('มีลูกน้องอยู่แล้ว คุณต้องการเพิ่มลูกน้องทั้งหมดอีกครั้งหรือไม่? (อาจจะซ้ำชื่อ)')) {
+                    return;
+                }
+            }
+
+            const employeeData = [
+                { name: 'นพ', salary: 700 },
+                { name: 'หวัง', salary: 550 },
+                { name: 'คำ', salary: 450 },
+                { name: 'โก๊ะ', salary: 300 },
+                { name: 'ต้อม', salary: 450 },
+                { name: 'บัตร', salary: 600 },
+                { name: 'เท่ง', salary: 700 },
+                { name: 'วัน', salary: 500 },
+                { name: 'อาท', salary: 700 },
+                { name: 'สมชาย', salary: 600 },
+                { name: 'นิด', salary: 400 },
+                { name: 'จัน', salary: 600 },
+                { name: 'เดี่ยว', salary: 500 },
+                { name: 'หนึ่ง', salary: 500 }
+            ];
+
+            const settings = JSON.parse(localStorage.getItem('settings') || '{}');
+            const defaultWorkingDays = settings.defaultWorkingDays || 30;
+
+            let addedCount = 0;
+            employeeData.forEach(emp => {
+                // ตรวจสอบว่ามีชื่อซ้ำหรือไม่
+                const existing = Object.values(employees).find(e => e.name === emp.name);
+                if (!existing) {
+                    const id = Date.now() + Math.random();
+                    employees[id] = {
+                        name: emp.name,
+                        dailySalary: emp.salary,
+                        workingDays: defaultWorkingDays,
+                        advances: [],
+                        leaves: [],
+                        previousNegativeBalance: 0,
+                        history: []
+                    };
+                    addedCount++;
+                }
+            });
+
+            saveData();
+            updateEmployeeList();
+            alert(`เพิ่มลูกน้องเรียบร้อยแล้ว ${addedCount} คน`);
+        }
+
+        // เพิ่มลูกน้องทั้งหมดพร้อมค่าแรง
+        function addAllEmployeesWithSalary() {
+            if (Object.keys(employees).length > 0) {
+                if (!confirm('มีลูกน้องอยู่แล้ว คุณต้องการเพิ่มลูกน้องทั้งหมดอีกครั้งหรือไม่? (จะข้ามชื่อที่ซ้ำ)')) {
+                    return;
+                }
+            }
+
+            const employeeData = [
+                { name: 'นพ', salary: 700 },
+                { name: 'หวัง', salary: 550 },
+                { name: 'คำ', salary: 450 },
+                { name: 'โก๊ะ', salary: 300 },
+                { name: 'ต้อม', salary: 450 },
+                { name: 'บัตร', salary: 600 },
+                { name: 'เท่ง', salary: 700 },
+                { name: 'วัน', salary: 500 },
+                { name: 'อาท', salary: 700 },
+                { name: 'สมชาย', salary: 600 },
+                { name: 'นิด', salary: 400 },
+                { name: 'จัน', salary: 600 },
+                { name: 'เดี่ยว', salary: 500 },
+                { name: 'หนึ่ง', salary: 500 }
+            ];
+
+            const settings = JSON.parse(localStorage.getItem('settings') || '{}');
+            const defaultWorkingDays = settings.defaultWorkingDays || 30;
+
+            let addedCount = 0;
+            employeeData.forEach((emp, index) => {
+                // ตรวจสอบว่ามีชื่อซ้ำหรือไม่
+                const existing = Object.values(employees).find(e => e.name === emp.name);
+                if (!existing) {
+                    const id = Date.now() + index + Math.random();
+                    employees[id] = {
+                        name: emp.name,
+                        dailySalary: emp.salary,
+                        workingDays: defaultWorkingDays,
+                        advances: [],
+                        leaves: [],
+                        previousNegativeBalance: 0,
+                        history: []
+                    };
+                    addedCount++;
+                }
+            });
+
+            saveData();
+            updateEmployeeList();
+            alert(`เพิ่มลูกน้องเรียบร้อยแล้ว ${addedCount} คน`);
+        }
+
         // ลบลูกน้อง
         function deleteEmployee(id) {
             if (confirm(`คุณต้องการลบ ${employees[id].name} หรือไม่?`)) {
@@ -754,11 +1078,20 @@
                 if (currentEmployeeId === id) {
                     currentEmployeeId = null;
                     document.getElementById('currentEmployeeSection').style.display = 'none';
+                    document.getElementById('noEmployeeSelected').style.display = 'block';
                 }
                 saveData();
                 updateEmployeeList();
                 updateAllSummary();
             }
+        }
+
+        // เปิด/ปิด Sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
         }
 
         // อัพเดทรายชื่อลูกน้อง
@@ -785,7 +1118,63 @@
                 `;
             }).join('');
 
+            // อัพเดท Sidebar
+            updateSidebarEmployeeList();
+
             updateAllSummary();
+        }
+
+        // อัพเดทรายชื่อลูกน้องใน Sidebar
+        function updateSidebarEmployeeList() {
+            const sidebarList = document.getElementById('sidebarEmployeeList');
+            const ids = Object.keys(employees);
+
+            if (ids.length === 0) {
+                sidebarList.innerHTML = '<div class="empty-state">ยังไม่มีรายชื่อลูกน้อง</div>';
+                return;
+            }
+
+            sidebarList.innerHTML = ids.map(id => {
+                const emp = employees[id];
+                const isActive = currentEmployeeId === id ? 'active' : '';
+                const calculation = calculateEmployeeSalary(emp);
+                return `
+                    <div class="sidebar-employee-item ${isActive}" onclick="selectEmployeeFromSidebar('${id}')">
+                        <div class="sidebar-employee-name">${emp.name}</div>
+                        <div class="sidebar-employee-salary">
+                            💰 ${formatCurrency(emp.dailySalary)}/วัน | 
+                            💵 ${formatCurrency(calculation.finalAmount)}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // คำนวณเงินลูกน้อง (helper function)
+        function calculateEmployeeSalary(emp) {
+            const fullDayLeaves = emp.leaves.filter(l => !(l.isHalfDay || l.type === 'halfday')).length;
+            const halfDayLeaves = emp.leaves.filter(l => l.isHalfDay || l.type === 'halfday').length;
+            const totalSalary = emp.dailySalary * emp.workingDays;
+            const leaveDeduction = (emp.dailySalary * fullDayLeaves) + (emp.dailySalary * 0.5 * halfDayLeaves);
+            const totalAdvance = emp.advances.reduce((sum, a) => sum + a.amount, 0);
+            const previousNegative = emp.previousNegativeBalance || 0;
+            const amountBeforeNegative = totalSalary - leaveDeduction - totalAdvance;
+            const finalAmount = amountBeforeNegative - previousNegative;
+
+            return {
+                totalSalary,
+                leaveDeduction,
+                totalAdvance,
+                previousNegative,
+                amountBeforeNegative,
+                finalAmount
+            };
+        }
+
+        // เลือกลูกน้องจาก Sidebar
+        function selectEmployeeFromSidebar(id) {
+            selectEmployee(id);
+            toggleSidebar(); // ปิด sidebar หลังจากเลือก
         }
 
         // เลือกลูกน้อง
@@ -800,6 +1189,10 @@
             document.getElementById('previousNegativeBalance').value = emp.previousNegativeBalance || 0;
             
             document.getElementById('currentEmployeeSection').style.display = 'block';
+            const noEmployeeMsg = document.getElementById('noEmployeeSelected');
+            if (noEmployeeMsg) {
+                noEmployeeMsg.style.display = 'none';
+            }
             
             // แสดงประวัติถ้ามี
             if (!emp.history) {
@@ -810,6 +1203,9 @@
             updateTables();
             updateSummary();
             updateEmployeeList();
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         // อัพเดทการตั้งค่าลูกน้อง
@@ -1054,18 +1450,10 @@
             // บันทึกยอดติดลบใหม่ = 2,000 (สำหรับหักเดือนถัดไป)
             // หมายเหตุ: ระบบจะอัพเดทยอดติดลบใหม่เมื่อคำนวณเสร็จ (ถ้าเงินติดลบ)
             // แต่ผู้ใช้สามารถแก้ไขได้ที่ฟิลด์ "ยอดติดลบจากเดือนก่อน"
-            if (finalAmount < 0) {
-                const newNegativeBalance = Math.abs(finalAmount);
-                // อัพเดทในข้อมูล
-                emp.previousNegativeBalance = newNegativeBalance;
-                // อัพเดทในฟิลด์ input (ถ้ายังไม่ได้แก้ไข)
-                const inputField = document.getElementById('previousNegativeBalance');
-                // อัพเดทเฉพาะถ้าค่าปัจจุบันเป็น 0 หรือเท่ากับยอดติดลบเก่า (เพื่อไม่ทับค่าที่ผู้ใช้กรอก)
-                if (inputField.value == previousNegative || inputField.value == 0) {
-                    inputField.value = newNegativeBalance;
-                }
-                saveData();
-            }
+            // หมายเหตุ: ไม่ควรอัพเดท previousNegativeBalance อัตโนมัติที่นี่
+            // เพราะจะทำให้ยอดติดลบสะสมผิดพลาด
+            // previousNegativeBalance ควรถูกตั้งค่าด้วยตนเองหรือเมื่อบันทึกประวัติ
+            // ถ้าต้องการอัพเดท ให้ใช้ปุ่ม "บันทึกประวัติเดือนนี้" แทน
             
             // แสดงปุ่มรีเซ็ตถ้ามียอดติดลบ
             const resetBtn = document.getElementById('resetNegativeBtn');
@@ -1164,6 +1552,15 @@
             // เรียงลำดับตามเดือน (ใหม่สุดก่อน)
             emp.history.sort((a, b) => b.month.localeCompare(a.month));
 
+            // อัพเดทยอดติดลบใหม่ถ้าเงินติดลบ (เมื่อบันทึกประวัติ)
+            // นี่คือจุดเดียวที่ควรอัพเดท previousNegativeBalance อัตโนมัติ
+            if (finalAmount < 0) {
+                emp.previousNegativeBalance = Math.abs(finalAmount);
+            } else {
+                // ถ้าเงินไม่ติดลบแล้ว ให้ล้างยอดติดลบ (จ่ายเงินครบแล้ว)
+                emp.previousNegativeBalance = 0;
+            }
+
             saveData();
             updateHistoryTable();
         }
@@ -1254,7 +1651,13 @@
                 // อนุญาตให้เงินติดลบได้
                 const amountBeforeNegative = totalSalary - leaveDeduction - totalAdvance;
                 const finalAmount = amountBeforeNegative - previousNegative;
-                totalAll += finalAmount; // รวมเงินติดลบด้วย
+                
+                // หมายเหตุ: ไม่ควรอัพเดท previousNegativeBalance อัตโนมัติที่นี่
+                // เพราะจะทำให้ยอดติดลบสะสมผิดพลาดเมื่อ setInterval เรียกทุก 2 วินาที
+                // previousNegativeBalance ควรถูกตั้งค่าด้วยตนเองหรือเมื่อบันทึกประวัติเท่านั้น
+                
+                // รวมเงินที่ต้องจ่าย (ใช้ค่าที่คำนวณได้จริง)
+                totalAll += finalAmount;
 
                 const amountClass = finalAmount < 0 ? 'negative-amount' : '';
                 return `
@@ -1264,6 +1667,9 @@
                     </div>
                 `;
             }).join('');
+
+            // หมายเหตุ: ไม่บันทึกข้อมูลที่นี่ เพราะไม่ได้อัพเดท previousNegativeBalance
+            // จะบันทึกเฉพาะเมื่อผู้ใช้แก้ไขข้อมูลจริงๆ
 
             document.getElementById('allSummaryContent').innerHTML = summaryContent;
             const totalElement = document.getElementById('allSummaryTotal');
@@ -1310,10 +1716,9 @@
                 const amountBeforeNegative = totalSalary - leaveDeduction - totalAdvance;
                 const finalAmount = amountBeforeNegative - previousNegative;
                 
-                // อัพเดทยอดติดลบใหม่ถ้าเงินติดลบ (เก็บไว้หักเดือนถัดไป)
-                if (finalAmount < 0) {
-                    emp.previousNegativeBalance = Math.abs(finalAmount);
-                }
+                // หมายเหตุ: ไม่ควรอัพเดท previousNegativeBalance อัตโนมัติที่นี่
+                // เพราะจะทำให้ยอดติดลบสะสมผิดพลาด
+                // previousNegativeBalance ควรถูกตั้งค่าด้วยตนเองหรือเมื่อบันทึกประวัติ
                 
                 totalAll += finalAmount;
 
@@ -1546,7 +1951,140 @@
                 </html>
             `);
             printWindow.document.close();
-            printWindow.print();
+            // รอให้โหลดเสร็จก่อนพิมพ์ (สำคัญสำหรับมือถือ)
+            setTimeout(() => {
+                printWindow.print();
+            }, 250);
+        }
+
+        // พิมพ์สรุปทั้งหมด
+        function printAllSummary() {
+            const ids = Object.keys(employees);
+            if (ids.length === 0) {
+                alert('ไม่มีข้อมูลลูกน้อง');
+                return;
+            }
+
+            const printWindow = window.open('', '_blank');
+            let htmlContent = `
+                <html>
+                    <head>
+                        <title>สรุปผลการคำนวณทั้งหมด</title>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <style>
+                            body { 
+                                font-family: 'Sarabun', Arial, sans-serif; 
+                                padding: 20px; 
+                                font-size: 14px;
+                            }
+                            h1 { 
+                                color: #667eea; 
+                                text-align: center;
+                                margin-bottom: 10px;
+                            }
+                            h2 {
+                                color: #667eea;
+                                border-bottom: 2px solid #667eea;
+                                padding-bottom: 5px;
+                                margin-top: 30px;
+                            }
+                            table { 
+                                width: 100%; 
+                                border-collapse: collapse; 
+                                margin: 20px 0; 
+                                font-size: 12px;
+                            }
+                            th, td { 
+                                border: 1px solid #ddd; 
+                                padding: 8px; 
+                                text-align: left; 
+                            }
+                            th { 
+                                background: #667eea; 
+                                color: white; 
+                                font-weight: bold;
+                            }
+                            .negative { 
+                                color: red; 
+                                font-weight: bold; 
+                            }
+                            .summary-row {
+                                display: flex;
+                                justify-content: space-between;
+                                padding: 5px 0;
+                                border-bottom: 1px solid #eee;
+                            }
+                            .total-row {
+                                font-weight: bold;
+                                font-size: 16px;
+                                color: #667eea;
+                                margin-top: 10px;
+                                padding-top: 10px;
+                                border-top: 2px solid #667eea;
+                            }
+                            @media print {
+                                body { margin: 0; padding: 10px; }
+                                table { font-size: 11px; }
+                                th, td { padding: 6px; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>📊 สรุปผลการคำนวณเงินเดือนทั้งหมด</h1>
+                        <p style="text-align: center; color: #666;">วันที่พิมพ์: ${new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            `;
+
+            let totalAll = 0;
+            ids.forEach(id => {
+                const emp = employees[id];
+                const fullDayLeaves = emp.leaves.filter(l => !(l.isHalfDay || l.type === 'halfday')).length;
+                const halfDayLeaves = emp.leaves.filter(l => l.isHalfDay || l.type === 'halfday').length;
+                const totalSalary = emp.dailySalary * emp.workingDays;
+                const leaveDeduction = (emp.dailySalary * fullDayLeaves) + (emp.dailySalary * 0.5 * halfDayLeaves);
+                const totalAdvance = emp.advances.reduce((sum, a) => sum + a.amount, 0);
+                const previousNegative = emp.previousNegativeBalance || 0;
+                const amountBeforeNegative = totalSalary - leaveDeduction - totalAdvance;
+                const finalAmount = amountBeforeNegative - previousNegative;
+                totalAll += finalAmount;
+
+                htmlContent += `
+                    <h2>👤 ${emp.name}</h2>
+                    <table>
+                        <tr><th>รายการ</th><th>จำนวน</th></tr>
+                        <tr><td>เงินเดือนรายวัน</td><td>${formatCurrency(emp.dailySalary)}</td></tr>
+                        <tr><td>จำนวนวันทำงาน</td><td>${emp.workingDays} วัน</td></tr>
+                        <tr><td>เงินเดือนรวม</td><td>${formatCurrency(totalSalary)}</td></tr>
+                        <tr><td>จำนวนวันลา</td><td>${fullDayLeaves + (halfDayLeaves * 0.5)} วัน (ทั้งวัน ${fullDayLeaves} วัน, ครึ่งวัน ${halfDayLeaves} วัน)</td></tr>
+                        <tr><td>หักจากการลา</td><td>${formatCurrency(leaveDeduction)}</td></tr>
+                        <tr><td>เบิกเงิน</td><td>${formatCurrency(totalAdvance)}</td></tr>
+                        <tr><td>ยอดติดลบเก่า</td><td class="${previousNegative > 0 ? 'negative' : ''}">${previousNegative > 0 ? formatCurrency(previousNegative) : '-'}</td></tr>
+                        <tr><td><strong>💰 เงินที่ต้องจ่าย</strong></td><td class="${finalAmount < 0 ? 'negative' : ''}"><strong>${formatCurrency(finalAmount)}</strong></td></tr>
+                    </table>
+                `;
+            });
+
+            htmlContent += `
+                        <div class="total-row">
+                            <div class="summary-row">
+                                <span>💰 รวมเงินที่ต้องจ่ายทั้งหมด:</span>
+                                <span class="${totalAll < 0 ? 'negative' : ''}">${formatCurrency(totalAll)}</span>
+                            </div>
+                        </div>
+                    </body>
+                </html>
+            `;
+
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+            setTimeout(() => {
+                printWindow.print();
+            }, 250);
+        }
+
+        // พิมพ์หน้าปัจจุบัน
+        function printCurrentPage() {
+            window.print();
         }
 
         // ========== ฟังก์ชัน Search/Filter ==========
@@ -1791,7 +2329,7 @@
                 updateAllSummary();
                 checkNotifications();
             }
-        }, 1000);
+        }, 2000);
     </script>
 </body>
 </html>
